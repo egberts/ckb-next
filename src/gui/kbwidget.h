@@ -68,7 +68,11 @@ private slots:
     void modeChanged();
     void currentSelectionChanged(const QModelIndex& current, const QModelIndex& previous);
     void on_modesList_customContextMenuRequested(const QPoint &pos);
+#if QT_VERSION >= QT_VERSION_CHECK(6, 7, 0)
+    void batteryTrayBox_checkStateChanged(Qt::CheckState);
+#else // QT_VERSION < 6.7.0
     void batteryTrayBox_stateChanged(int state);
+#endif
 
     void devUpdate();
     void updateBattery(uint battery, BatteryStatus charging);
@@ -78,7 +82,7 @@ private slots:
     void on_layoutBox_activated(int index);
     void switchToProfile(const QString& profile);
     void switchToMode(const QString& mode);
-    void on_pollRateBox_currentIndexChanged(const QString& arg1);
+    void on_pollRateBox_currentIndexChanged(int arg1);
     void switchToModeByFocus(XWindowInfo win);
     void on_modesList_doubleClicked(const QModelIndex& index);
     void on_modesList_clicked(const QModelIndex& index);

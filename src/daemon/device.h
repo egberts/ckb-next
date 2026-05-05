@@ -96,6 +96,8 @@ int cmd_idle_bragi(usbdevice* kb, usbmode* dummy1, int dummy2, int dummy3, const
 int cmd_pollrate(usbdevice* kb, pollrate_t rate);
 int cmd_pollrate_legacy(usbdevice* kb, pollrate_t rate);
 int cmd_pollrate_bragi(usbdevice* kb, pollrate_t rate);
+// Command: Pair devices
+void cmd_pair_bragi(usbdevice* kb, usbmode* mode, int dummy1, int dummy2, const char* to);
 
 // Sets a device's current mode index. This is only used on the legacy K95; the RGB keyboards have no gettable HW index.
 void setmodeindex_legacy(usbdevice* kb, int index);
@@ -108,6 +110,13 @@ void clear_input_and_rgb(usbdevice* kb, const int active);
 
 void nxp_get_battery_info(usbdevice* kb);
 void bragi_get_battery_info(usbdevice* kb);
+
+void legacy_delay(usbdevice* kb, delay_type_t type);
+void nxp_delay(usbdevice* kb, delay_type_t type);
+void bragi_delay(usbdevice* kb, delay_type_t type);
+
+void nxp_mouse_setfps(usbdevice* kb, int fps);
+void nxp_kb_setfps(usbdevice* kb, int fps);
 
 // Per-key input settings for device setup
 // The upper nybble controls input mode. 0x80 generates a normal HID interrupt, 0x40 generates a proprietary interrupt. 0xc0 generates both.

@@ -28,9 +28,14 @@
    </property>
    <item>
     <widget class="QLabel" name="versionLabel">
+     <property name="minimumSize">
+      <size>
+       <width>0</width>
+       <height>23</height>
+      </size>
+     </property>
      <property name="font">
       <font>
-       <weight>75</weight>
        <bold>true</bold>
       </font>
      </property>
@@ -89,7 +94,7 @@
         <x>0</x>
         <y>0</y>
         <width>809</width>
-        <height>503</height>
+        <height>497</height>
        </rect>
       </property>
       <layout class="QVBoxLayout" name="verticalLayout">
@@ -121,9 +126,14 @@
              <verstretch>0</verstretch>
             </sizepolicy>
            </property>
+           <property name="minimumSize">
+            <size>
+             <width>0</width>
+             <height>23</height>
+            </size>
+           </property>
            <property name="font">
             <font>
-             <weight>75</weight>
              <bold>true</bold>
             </font>
            </property>
@@ -347,9 +357,14 @@
              <verstretch>0</verstretch>
             </sizepolicy>
            </property>
+           <property name="minimumSize">
+            <size>
+             <width>0</width>
+             <height>23</height>
+            </size>
+           </property>
            <property name="font">
             <font>
-             <weight>75</weight>
              <bold>true</bold>
             </font>
            </property>
@@ -362,16 +377,6 @@
           <widget class="Line" name="line_2">
            <property name="orientation">
             <enum>Qt::Horizontal</enum>
-           </property>
-          </widget>
-         </item>
-         <item>
-          <widget class="QCheckBox" name="loginItemBox">
-           <property name="toolTip">
-            <string>ckb-next will be started when you log in to your computer.</string>
-           </property>
-           <property name="text">
-            <string>Start ckb-next at login</string>
            </property>
           </widget>
          </item>

@@ -24,22 +24,27 @@ public:
 signals:
     // This is never emitted by KStatusNotifierItem
     void activated(QSystemTrayIcon::ActivationReason);
+    void scrollRequested(QPoint delta);
 private:
     QString previousPath;
 #else
+    // setToolTip implementations for feature parity
+    // They discard the icon
+    void setToolTip(const QString& iconName, const QString& title, const QString& subTitle) { QSystemTrayIcon::setToolTip(QString("%1: %2").arg(title, subTitle)); }
+    void setToolTip(const QIcon& icon, const QString& title, const QString& subTitle) { QSystemTrayIcon::setToolTip(QString("%1: %2").arg(title, subTitle)); }
     CkbSystemTrayIcon(const QIcon& icon, const QString iconName, QObject* parent = nullptr) :  QSystemTrayIcon(icon, parent) {}
     virtual bool event(QEvent* evt)
     {
         if(evt->type() == QEvent::Wheel) {
             QWheelEvent* wheelEvt = static_cast<QWheelEvent*>(evt);
-            emit scrollRequested(wheelEvt->delta(), wheelEvt->orientation());
+            emit scrollRequested(wheelEvt->angleDelta());
             return true;
         }
         return QSystemTrayIcon::event(evt);
     }
 
 signals:
-        void scrollRequested(int delta, Qt::Orientation orientation);
+        void scrollRequested(QPoint delta);
 
 public:
         void setIcon(QIcon icon, QString name) { QSystemTrayIcon::setIcon(icon); }

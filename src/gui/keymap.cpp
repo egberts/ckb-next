@@ -1,6 +1,9 @@
 #include <clocale>
 #include <QMap>
 #include "keymap.h"
+#include <QObject>
+
+const Key KeyMap::emptyKey = {nullptr,nullptr,nullptr,0,0,0,0,0,0};
 
 // Normal key size
 #define NS 12, 12
@@ -224,6 +227,9 @@ static inline void patchABNT2(QHash<QString, Key>& map){
 #define K95P_X_START     20
 #define K95P_WIDTH       (K95_WIDTH - K95P_X_START + 1)
 
+#define K100_HEIGHT      (K95P_HEIGHT + 6)
+#define K100_WIDTH       (K95P_WIDTH + 10)
+
 // K70 cuts off the G keys on the left, as well as MR/M1/M2/M3
 #define K70_X_START     38
 #define K70_WIDTH       (K95_WIDTH - K70_X_START)
@@ -236,6 +242,9 @@ static inline void patchABNT2(QHash<QString, Key>& map){
 #define K65_WIDTH       209
 #define K65_HEIGHT      K70_HEIGHT
 
+#define K65_MINI_WIDTH  162
+#define K65_MINI_HEIGHT 48
+
 // K63 is the same as the K65 in terms of size
 #define K63_WIDTH       K65_WIDTH
 #define K63_HEIGHT      K65_HEIGHT
@@ -244,6 +253,21 @@ static inline void patchABNT2(QHash<QString, Key>& map){
 #define K60_WIDTH       K70_WIDTH
 #define K60_HEIGHT      62
 
+// K60 PRO TKL has only six rows and no numpad on the right
+#define K60_TKL_WIDTH   K65_WIDTH
+#define K60_TKL_HEIGHT  K60_HEIGHT
+
+
+static const Key K70TklTopRow[] = {
+    {nullptr, "Stop", "stop", K70_X_START - 37, 0, 12, 8, true, true},
+    {nullptr, "Previous", "prev", K70_X_START - 26, 0, 12, 8, true, true},
+    {nullptr, "Play/Pause", "play", K70_X_START - 15, 0, 12, 8, true, true},
+    {nullptr, "Next", "next", K70_X_START - 4, 0, 12, 8, true, true},
+    {nullptr, "Logo", "logo", 140 - K70_X_START, 0, 12, 12, true, false},
+    {nullptr, "Profile Switch", "profswitch", 178 - K70_X_START, 0, 12, 8, true, true},
+    {nullptr, "Mute", "mute", 222 - K70_X_START, 0, 12, 8, true, true},
+};
+#define K70_TKL_TOP_COUNT (sizeof(K70TklTopRow) / sizeof(Key))
 
 static const Key K68TopRow[] = {
     {nullptr,  "Volume Down", "voldn", 285 - K70_X_START, 0, 13, 8, true, true}, {nullptr,  "Volume Up", "volup", 297 - K70_X_START, 0, 13, 8, true, true},
@@ -294,7 +318,7 @@ static const Key M65Keys[] = {
     {nullptr,  "Wheel Up", "wheelup", 22, 4, 8, 5, false, true}, {nullptr,  "Wheel Down", "wheeldn", 22, 14, 8, 5, false, true}, {nullptr,  "Wheel Light", "front", 22, 15, 8, 8, true, false},
     {nullptr,  "DPI Up", "dpiup", 22, 19, 8, 6, false, true}, {nullptr,  "DPI Light", "dpi", 22, 24, 8, 8, true, false}, {nullptr,  "DPI Down", "dpidn", 22, 31, 8, 6, false, true},
     {nullptr,  "Forward", "mouse5", 5, 24, 5, 9, false, true}, {nullptr,  "Back", "mouse4", 5, 33, 5, 10, false, true}, {nullptr,  "Sniper", "sniper", 0, 25, 5, 15, false, true},
-    {nullptr,  "Logo", "back", 14, 55, 24, 12, true, false}
+    {nullptr,  "Logo", "back", 20, 54, 12, 12, true, false}
 };
 #define KEYCOUNT_M65    (sizeof(M65Keys) / sizeof(Key))
 
@@ -307,7 +331,7 @@ static const Key SabreKeys[] = {
     {nullptr,  "Wheel Up", "wheelup", 22, 5, 8, 5, false, true}, {nullptr,  "Wheel Down", "wheeldn", 22, 15, 8, 5, false, true}, {nullptr,  "Wheel Light", "wheel", 22, 5, 8, 15, true, false}, {nullptr,  "Extra button", "thumb1", 22, 20, 8, 18, false, true},
     {nullptr,  "DPI Up", "dpiup", 5, 3, 5, 7, false, true}, {nullptr,  "DPI Down", "dpidn", 5, 10, 5, 7, false, true}, {nullptr,  "DPI Light", "dpi", 5, 4, 5, 12, true, false},
     {nullptr,  "Forward", "mouse5", 5, 24, 5, 9, false, true}, {nullptr,  "Back", "mouse4", 5, 33, 5, 10, false, true},
-    {nullptr,  "Logo", "back", 14, 50, 24, 12, true, false}
+    {nullptr,  "Logo", "back", 21, 50, 12, 12, true, false}
 };
 #define KEYCOUNT_SABRE  (sizeof(SabreKeys) / sizeof(Key))
 
@@ -330,7 +354,7 @@ static const Key HarpoonKeys[] = {
 static const Key GlaiveKeys[] = {
     {nullptr,  "Left Mouse", "mouse1", 17, 3, 14, 18, false, true}, {nullptr,  "Right Mouse", "mouse2", 37, 3, 14, 18, false, true}, {nullptr,  "Middle Mouse", "mouse3", 31, 9, 7, 7, false, true}, {nullptr,  "Front light", "front", 16, -5, 36, 8, true, false },
     {nullptr,  "Wheel Up", "wheelup", 31, 5, 7, 5, false, true}, {nullptr,  "Wheel Down", "wheeldn", 31, 15, 7, 5, false, true}, {nullptr,  "Side Lights", "side", 22, 24, 7, 20, true, false},
-    {nullptr,  "DPI Cycle", "dpiup", 31, 19, 6, 12, false, true}, {nullptr,  "Logo Light", "back", 24, 43, 20, 20, true, false},
+    {nullptr,  "DPI Cycle", "dpiup", 31, 19, 6, 12, false, true}, {nullptr,  "Logo Light", "back", 26, 45, 16, 16, true, false},
     {nullptr,  "Forward", "mouse5", 15, 22, 5, 11, false, true}, {nullptr,  "Back", "mouse4", 15, 32, 5, 11, false, true}
 };
 #define KEYCOUNT_GLAIVE  (sizeof(GlaiveKeys) / sizeof(Key))
@@ -370,7 +394,7 @@ static const Key ScimKeys[] = {
     {nullptr,  "4", "thumb4", -6, 25, 7, 7, false, true}, {nullptr,  "5", "thumb5", 1, 25, 7, 7, false, true}, {nullptr,  "6", "thumb6", 8, 25, 7, 7, false, true},
     {nullptr,  "7", "thumb7", -6, 32, 7, 7, false, true}, {nullptr,  "8", "thumb8", 1, 32, 7, 7, false, true}, {nullptr,  "9", "thumb9", 8, 32, 7, 7, false, true},
     {nullptr,  "10", "thumb10", -6, 39, 7, 7, false, true}, {nullptr,  "11", "thumb11", 1, 39, 7, 7, false, true}, {nullptr,  "12", "thumb12", 8, 39, 7, 7, false, true},
-    {nullptr,  "Logo", "back", 21, 50, 24, 16, true, false}
+    {nullptr,  "Logo", "back", 26, 50, 16, 16, true, false}
 };
 #define KEYCOUNT_SCIM   (sizeof(ScimKeys) / sizeof(Key))
 
@@ -412,10 +436,10 @@ static const Key M55Keys[] = {
 
 // K95 Platinum lightbar
 static const Key K95PLbar[] = {
-    {nullptr, nullptr, "topbar1", 4, -3, LBS, true, false}, {nullptr, nullptr, "topbar2", 19, -3, LBS, true, false}, {nullptr, nullptr, "topbar3", 34, -3, LBS, true, false}, {nullptr, nullptr, "topbar4", 49, -3, LBS, true, false}, {nullptr, nullptr, "topbar5", 64, -3, LBS, true, false}, {nullptr, nullptr, "topbar6", 79, -3, LBS, true, false},
-    {nullptr, nullptr, "topbar7", 94, -3, LBS, true, false}, {nullptr, nullptr, "topbar8", 109, -3, LBS, true, false}, {nullptr, nullptr, "topbar9", 124, -3, LBS, true, false}, {nullptr, nullptr, "topbar10", 139, -3, LBS, true, false}, {nullptr, nullptr, "topbar11", 154, -3, LBS, true, false}, {nullptr, nullptr, "topbar12", 169, -3, LBS, true, false},
-    {nullptr, nullptr, "topbar13", 184, -3, LBS, true, false}, {nullptr, nullptr, "topbar14", 199, -3, LBS, true, false}, {nullptr, nullptr, "topbar15", 214, -3, LBS, true, false}, {nullptr, nullptr, "topbar16", 229, -3, LBS, true, false}, {nullptr, nullptr, "topbar17", 244, -3, LBS, true, false}, {nullptr, nullptr, "topbar18", 259, -3, LBS, true, false},
-    {nullptr, nullptr, "topbar19", 274, -3, LBS, true, false},
+    {nullptr, "Top Light Bar 1", "topbar1", 4, -3, LBS, true, false}, {nullptr, "Top Light Bar 2", "topbar2", 19, -3, LBS, true, false}, {nullptr, "Top Light Bar 3", "topbar3", 34, -3, LBS, true, false}, {nullptr, "Top Light Bar 4", "topbar4", 49, -3, LBS, true, false}, {nullptr, "Top Light Bar 5", "topbar5", 64, -3, LBS, true, false}, {nullptr, "Top Light Bar 6", "topbar6", 79, -3, LBS, true, false},
+    {nullptr, "Top Light Bar 7", "topbar7", 94, -3, LBS, true, false}, {nullptr, "Top Light Bar 8", "topbar8", 109, -3, LBS, true, false}, {nullptr, "Top Light Bar 9", "topbar9", 124, -3, LBS, true, false}, {nullptr, "Top Light Bar 10", "topbar10", 139, -3, LBS, true, false}, {nullptr, "Top Light Bar 11", "topbar11", 154, -3, LBS, true, false}, {nullptr, "Top Light Bar 12", "topbar12", 169, -3, LBS, true, false},
+    {nullptr, "Top Light Bar 13", "topbar13", 184, -3, LBS, true, false}, {nullptr, "Top Light Bar 14", "topbar14", 199, -3, LBS, true, false}, {nullptr, "Top Light Bar 15", "topbar15", 214, -3, LBS, true, false}, {nullptr, "Top Light Bar 16", "topbar16", 229, -3, LBS, true, false}, {nullptr, "Top Light Bar 17", "topbar17", 244, -3, LBS, true, false}, {nullptr, "Top Light Bar 18", "topbar18", 259, -3, LBS, true, false},
+    {nullptr, "Top Light Bar 19", "topbar19", 274, -3, LBS, true, false},
 };
 #define LBARCOUNT_K95P (sizeof(K95PLbar) / sizeof(Key))
 
@@ -425,9 +449,34 @@ static const Key DarkCoreKeys[] = {
     {nullptr,  "Wheel Up", "wheelup", 22, 4, 8, 5, false, true}, {nullptr,  "Wheel Down", "wheeldn", 22, 14, 8, 5, false, true}, {nullptr,  "Wheel Light", "wheel", 22, 2, 8, 16, true, false},
     {nullptr,  "DPI Up", "dpiup", 0, 5, 8, 8, false, true}, {nullptr,  "DPI Down", "dpidn", 0, 12, 8, 8, false, true},
     {nullptr,  "Forward", "mouse5", 5, 24, 5, 9, false, true}, {nullptr,  "Back", "mouse4", 5, 33, 5, 10, false, true}, {nullptr,  "Sniper", "sniper", 0, 25, 5, 15, false, true}, {nullptr,  "Side light", "side", 0, 24, 10, 24, true, false},
-    {nullptr,  "Logo", "back", 0, 48, 48, 12, true, false}, {nullptr,  "Profile Switch", "profswitch", 22, 20, 8, 12, false, true}, {nullptr,  "DPI", "dpi", 0, 0, 10, 24, true,  false }
+    {nullptr,  "Logo", "back", 19, 50, 12, 12, true, false}, {nullptr,  "Profile Switch", "profswitch", 22, 20, 8, 12, false, true}, {nullptr,  "DPI", "dpi", 0, 0, 10, 24, true,  false }
 };
 #define KEYCOUNT_DARKCORE    (sizeof(DarkCoreKeys) / sizeof(Key))
+
+// Mouse map - DARK CORE RGB PRO
+static const Key DarkCoreRgbProKeys[] = {
+    {nullptr, "Left Mouse",     "mouse1",      8,  0, 14, 24, false, true},
+    {nullptr, "Right Mouse",    "mouse2",     25,  0, 14, 24, false, true},
+    {nullptr, "Middle Mouse",   "mouse3",     19,  8,  8,  7, false, true},
+    {nullptr, "Wheel Up",       "wheelup",    19,  4,  8,  5, false, true},
+    {nullptr, "Wheel Down",     "wheeldn",    19, 14,  8,  5, false, true},
+    {nullptr, "Wheel Light",    "wheel",      19,  5,  8, 10, true,  false},
+    {nullptr, "DPI Up",         "dpiup",       0,  5,  8,  8, false, true},
+    {nullptr, "DPI Down",       "dpidn",       0, 12,  8,  8, false, true},
+    {nullptr, "Forward",        "mouse5",      5, 24, 10,  9, true,  true},
+    {nullptr, "Back",           "mouse4",      5, 29,  5, 10, true,  true},
+    {nullptr, "Bar 3 light",    "bar3",        5, 35,  5,  8, true,  false},
+    {nullptr, "Bar 4 light",    "bar4",        5, 40,  5,  8, true,  false},
+    {nullptr, "Thumb light",    "thumb",       5, 55,  8,  8, true,  false},
+    {nullptr, "Side light",     "side",       30, 48,  8,  8, true,  false},
+    {nullptr, "Logo",           "back",       15, 48, 15, 15, true,  false},
+    {nullptr, "Profile",        "profdn",     19, 19,  8, 8,  false,  true},
+    {nullptr, "DPI0",           "dpiw0",       19, 15,  8, 8,  true,  false},
+    {nullptr, "DPI3",           "dpiw3",       10,  5,  8, 8,  true,  false},
+    {nullptr, "DPI2",           "dpiw2",        5,  5,  8, 8,  true,  false},
+    {nullptr, "DPI1",           "dpiw1",         0,  5,  8, 8,  true,  false},
+};
+#define KEYCOUNT_DARKCORERGBPRO    (sizeof(DarkCoreRgbProKeys) / sizeof(Key))
 
 // MM800 Polaris
 #define POLARIS_V 6, 14
@@ -440,6 +489,19 @@ static const Key PolarisZones[] = {
     {nullptr,  "Zone 13", "zone13", -19, 28, POLARIS_V, true, false}, {nullptr,  "Zone 14", "zone14", -19, 16, POLARIS_V, true, false}, {nullptr,  "Zone 15", "zone15", -19, 4, POLARIS_V, true, false}
 };
 #define KEYCOUNT_POLARIS   (sizeof(PolarisZones) / sizeof(Key))
+
+// MM700
+#define MM700_WIDTH      110
+#define MM700_HEIGHT     60
+#define MM700_V 6, 62
+#define MM700_H 62, 6
+
+static const Key MM700Zones[] = {
+    {nullptr,  "Zone 1", "zone1", -16, 1, MM700_H, true, false},
+    {nullptr,  "Zone 2", "zone2", 119, 1, MM700_V, true, false},
+    {nullptr,  "Zone 3", "zone3", 104, -5, NS, true, false}
+};
+#define KEYCOUNT_MM700   (sizeof(MM700Zones) / sizeof(Key))
 
 #define ST100_V 6,22
 #define ST100_H 22,6
@@ -700,6 +762,85 @@ static QHash<QString, Key> getMap(KeyMap::Model model, KeyMap::Layout layout){
 
         break;
     }
+    case KeyMap::K100:{
+        map = getMap(KeyMap::K95P, layout);
+        // Shift everything down except the existing topbar
+        QMutableHashIterator<QString, Key> i(map);
+        while(i.hasNext()){
+            i.next();
+            if(!i.key().contains("topbar"))
+                i.value().y += (K100_HEIGHT - K95P_HEIGHT);
+
+             i.value().x += (K100_WIDTH - K95P_WIDTH)/2;
+        }
+        // Shrink the top lightbar and add the extra three items
+        for(int j = 0; j < 19; j++){
+            QString key = QString("topbar%1").arg(j + 1);
+            map[key].width = 15; // maybe 15
+            map[key].x -= j * 2 + 1;
+        }
+        map["topbar20"] = {nullptr, "Top Light Bar 20", "topbar20", 255, -3, 15, 6, true, false};
+        map["topbar21"] = {nullptr, "Top Light Bar 21", "topbar21", 268, -3, 15, 6, true, false};
+        map["topbar22"] = {nullptr, "Top Light Bar 22", "topbar22", 281, -3, 15, 6, true, false};
+
+        // Add the left and right bars
+        map["leftbar1"] = {nullptr, "Left Light Bar 1", "leftbar1", -2, -2, 6, 9, true, false};
+        map["leftbar2"] = {nullptr, "Left Light Bar 2", "leftbar2", -2, 7, 6, 9, true, false};
+        map["leftbar3"] = {nullptr, "Left Light Bar 3", "leftbar3", -2, 16, 6, 9, true, false};
+        map["leftbar4"] = {nullptr, "Left Light Bar 4", "leftbar4", -2, 25, 6, 9, true, false};
+        map["leftbar5"] = {nullptr, "Left Light Bar 5", "leftbar5", -2, 34, 6, 9, true, false};
+        map["leftbar6"] = {nullptr, "Left Light Bar 6", "leftbar6", -2, 43, 6, 9, true, false};
+        map["leftbar7"] = {nullptr, "Left Light Bar 7", "leftbar7", -2, 52, 6, 9, true, false};
+        map["leftbar8"] = {nullptr, "Left Light Bar 8", "leftbar8", -2, 61, 6, 9, true, false};
+        map["leftbar9"] = {nullptr, "Left Light Bar 9", "leftbar9", -2, 70, 6, 9, true, false};
+        map["leftbar10"] = {nullptr, "Left Light Bar 10", "leftbar10", -2, 79, 6, 9, true, false};
+        map["leftbar11"] = {nullptr, "Left Light Bar 11", "leftbar11", -2, 88, 6, 9, true, false};
+
+        map["rightbar1"] = {nullptr, "Right Light Bar 1", "rightbar1", 292, -2, 6, 9, true, false};
+        map["rightbar2"] = {nullptr, "Right Light Bar 2", "rightbar2", 292, 7, 6, 9, true, false};
+        map["rightbar3"] = {nullptr, "Right Light Bar 3", "rightbar3", 292, 16, 6, 9, true, false};
+        map["rightbar4"] = {nullptr, "Right Light Bar 4", "rightbar4", 292, 25, 6, 9, true, false};
+        map["rightbar5"] = {nullptr, "Right Light Bar 5", "rightbar5", 292, 34, 6, 9, true, false};
+        map["rightbar6"] = {nullptr, "Right Light Bar 6", "rightbar6", 292, 43, 6, 9, true, false};
+        map["rightbar7"] = {nullptr, "Right Light Bar 7", "rightbar7", 292, 52, 6, 9, true, false};
+        map["rightbar8"] = {nullptr, "Right Light Bar 8", "rightbar8", 292, 61, 6, 9, true, false};
+        map["rightbar9"] = {nullptr, "Right Light Bar 9", "rightbar9", 292, 70, 6, 9, true, false};
+        map["rightbar10"] = {nullptr, "Right Light Bar 10", "rightbar10", 292, 79, 6, 9, true, false};
+        map["rightbar11"] = {nullptr, "Right Light Bar 11", "rightbar11", 292, 88, 6, 9, true, false};
+
+        map["profswitch"] = {nullptr,  "Profile Switch", "profswitch", 20, 10, 11, 9, true, true};
+        map["ctrlwheelccw"] = {nullptr, "Control Wheel Counterclockwise", "ctrlwheelccw", 28, 10, 6, 16, false, true };
+        map["ctrlwheelb"] = {nullptr, "Control Wheel Button", "ctrlwheelb", 35, 10, 11, 11, true, true };
+        map["ctrlwheelcw"] = {nullptr, "Control Wheel Clockwise", "ctrlwheelcw", 42, 10, 6, 16, false, true };
+        map["lock"] = {nullptr, "Lock", "lock", 50, 10, 11, 9, true, true};
+
+        map["mute"].height = map["profswitch"].height;
+        map["mute"].y = map["profswitch"].y = map["lock"].y = map["ctrlwheelb"].y;
+        map["volup"].y = map["ctrlwheelb"].y - 2;
+        map["voldn"].y = map["ctrlwheelb"].y + 2;
+
+        map["ctrlwheel1"] = {nullptr, "Control Wheel 22.5°",  "ctrlwheel1", 35+2, 10, 8, 6, true, false};
+        map["ctrlwheel2"] = {nullptr, "Control Wheel 67.5°",  "ctrlwheel2", 35+3, 10+1, 5, 8, true, false};
+        map["ctrlwheel3"] = {nullptr, "Control Wheel 112.5°", "ctrlwheel3", 35+3, 10+2, 5, 8, true, false};
+        map["ctrlwheel4"] = {nullptr, "Control Wheel 157.5°", "ctrlwheel4", 35+2, 10+3, 8, 6, true, false};
+        map["ctrlwheel5"] = {nullptr, "Control Wheel 202.5°", "ctrlwheel5", 35+1, 10+3, 8, 6, true, false};
+        map["ctrlwheel6"] = {nullptr, "Control Wheel 247.5°", "ctrlwheel6", 35, 10+2, 5, 8, true, false};
+        map["ctrlwheel7"] = {nullptr, "Control Wheel 292.5°", "ctrlwheel7", 35, 10+1, 5, 8, true, false};
+        map["ctrlwheel8"] = {nullptr, "Control Wheel 337.5°", "ctrlwheel8", 35+1, 10, 8, 6, true, false};
+
+        map["logoleft"] = {nullptr, "Logo Left", "logoleft", 134, 10, 10, 10, true, false};
+        map["logo"] = {nullptr, "Logo", "logo", 144, 10, 10, 10, true, false};
+        map["logoright"] = {nullptr, "Logo Right", "logoright", 154, 10, 10, 10, true, false};
+
+        // Replace rwin with Fn
+        map["fn"] = KStrafeKeys[3];
+        map["fn"].x = map["rwin"].x;
+        map["fn"].y = map["rwin"].y;
+        map.remove("rwin");
+
+        map.remove("light");
+        break;
+    }
     case KeyMap::K70:{
         // The K70 maps are based on the K95 maps. However all the keys are shifted left and the G keys are removed
         map = getMap(KeyMap::K95, layout);
@@ -743,6 +884,69 @@ static QHash<QString, Key> getMap(KeyMap::Model model, KeyMap::Layout layout){
         map["volup"].x -= 10;
         map["voldn"].x -= 10;
         break;
+    }
+    case KeyMap::K70_PRO:{
+        // Same as K70 MK2 but right Windows key is a function key
+        map = getMap(KeyMap::K70MK2, layout);
+
+        map["fn"] = KStrafeKeys[3];
+        map["fn"].x = map["rwin"].x;
+        map.remove("rwin");
+
+        // these keys are all the way to left
+        map["profswitch"].x = 0;
+        map["light"].x = 9;
+        map["lock"].x = 18;
+
+        // these keys are all the way to the right
+        map["mute"].x += 10;
+        map["volup"].x += 10;
+        map["voldn"].x += 10;
+
+        map["logo"] = {nullptr, "Logo", "logo", 128, 0, NS, true, false};
+        map.remove("m3");
+        map.remove("g11");
+
+        break;
+    }
+    case KeyMap::K70_TKL:{
+        // Same width as the K63 but with a top row more like the K70
+        map = getMap(KeyMap::K63, layout);
+        for(const Key* key = K70TklTopRow; key < K70TklTopRow + K70_TKL_TOP_COUNT; key++)
+            map[key->name] = *key;
+
+        map.remove("rwin");
+        map["fn"] = KStrafeKeys[3];
+        map["fn"].x -= 12;
+        map["light"].x = 190 - K70_X_START;
+        map["light"].height = 8;
+        map["lock"].x = 202 - K70_X_START;
+        map["lock"].height = 8;
+        break;
+    }
+    case KeyMap::K70_CORE_RGB:{
+            map = getMap(KeyMap::K70, layout);
+            map["lock"] = {nullptr, "Lock", "lock", 20, 2, NS, false, true}; // F1 alternate
+            map["profswitch"] = {nullptr, "Profile Switch", "profswitch", 32, 2, 11, 11, false, true}; // F2 alternate
+            map["light"] = {nullptr, "Light", "light", 50, 2, NS, false, true}; // F3 and F4 alternate
+            map["stop"] = {nullptr, "Stop", "stop", 76, 2, 11, 11, false, true}; // F5 alternate
+            map["prev"] = { nullptr,  "Previous", "prev", 88, 2, 11, 11, false, true}; // F6 alternate
+            map["play"] = { nullptr,  "Play", "play", 100, 2, 11, 11, false, true}; // F7 alternate
+            map["next"] = { nullptr,  "Next", "next", 112, 2, 11, 11, false, true}; // F8 alternate
+            map["ctrlwheelb"] = {nullptr, "Wheel", "ctrlwheelb", 168, 2, NS, false, true}; // F12 alternate
+
+            // This is the media button that defaults to play
+            // We already have a play Fn button so we want to map it to something else so it can be programmed
+            map["mr"] = { nullptr,  "Macro", "mr", 227, 14, 16, 11, false, true};
+
+            // K70 Core RGB has a volume knob that can be pressed
+            map["mute"] = {nullptr,  "Mute", "mute",  259, 14, NS, false, true};
+
+            // Replace rwin with Fn
+            map["fn"] = KStrafeKeys[3];
+            map["fn"].x = map["rwin"].x;
+            map.remove("rwin");
+            break;
     }
     case KeyMap::STRAFE_MK2:{
         map = getMap(KeyMap::K70MK2, layout);
@@ -796,6 +1000,26 @@ static QHash<QString, Key> getMap(KeyMap::Model model, KeyMap::Layout layout){
         // Done!
         break;
     }
+    case KeyMap::K65_MINI:{
+        map = getMap(KeyMap::K65, layout);
+
+        // Move Esc so that it doesn't get deleted
+        map["esc"].y += 13;
+        map.remove("grave");
+
+        // Remove the whole top bar and shift everything up
+        QMutableHashIterator<QString, Key> i(map);
+        while(i.hasNext()){
+            i.next();
+
+            if((i.value().y -= 27) < 0)
+                i.remove();
+            else if((i.value().x -= 3) > K65_MINI_WIDTH + 2)
+                i.remove();
+        }
+
+        break;
+    }
     case KeyMap::K63:{
         // Similar to the K65 but without the Fn key and a modified top row
         map = getMap(KeyMap::K70, layout);
@@ -843,6 +1067,37 @@ static QHash<QString, Key> getMap(KeyMap::Model model, KeyMap::Layout layout){
             i.value().y -= 14;
         }
 
+        break;
+    }
+    case KeyMap::K60_TKL:{
+        map = getMap(KeyMap::K63, layout);
+        // QMutableHashIterator<QString, Key> i(map);
+        // while(i.hasNext()){
+        //     i.next();
+        //     // Move key to left. Remove it if it fell off the edge
+        //     if((i.value().x -= K70_X_START) < 0)
+        //         i.remove();
+        // }
+        map.remove("light");
+        map.remove("lock");
+        map.remove("mute");
+        map.remove("volup");
+        map.remove("voldn");
+        map.remove("stop");
+        map.remove("prev");
+        map.remove("play");
+        map.remove("next");
+
+        // Replace rwin with Fn
+        map["fn"] = KStrafeKeys[3];
+        map["fn"].x = map["rwin"].x;
+        map.remove("rwin");
+
+        QMutableHashIterator<QString, Key> i(map);
+        while(i.hasNext()){
+            i.next();
+            i.value().y -= 14;
+        }
         break;
     }
     case KeyMap::K57_WL:{
@@ -956,6 +1211,9 @@ static QHash<QString, Key> getMap(KeyMap::Model model, KeyMap::Layout layout){
             i.value().x -= K95P_X_START;
             i.value().hasLed = false;
         }
+
+        // https://github.com/ckb-next/ckb-next/issues/931
+        map["lock"].hasLed = true;
 
         // Append the zones to the keymap
         for(const Key* key = K55Zones; key < K55Zones + K55_ZONES; key++)
@@ -1087,9 +1345,29 @@ static QHash<QString, Key> getMap(KeyMap::Model model, KeyMap::Layout layout){
         }
         break;
     }
+    case KeyMap::DARKCORERGBPRO:{
+        // Dark Core
+        for(const Key* key = DarkCoreRgbProKeys; key < DarkCoreRgbProKeys + KEYCOUNT_DARKCORERGBPRO; key++){
+            Key translatedKey = *key;
+            translatedKey.x += translatedKey.width / 2;
+            translatedKey.y += translatedKey.height / 2;
+            map[key->name] = translatedKey;
+        }
+        break;
+    }
     case KeyMap::POLARIS:{
         // MM800 Polaris Mousepad
         for(const Key* key = PolarisZones; key < PolarisZones + KEYCOUNT_POLARIS; key++){
+            Key translatedKey = *key;
+            translatedKey.x += translatedKey.width / 2;
+            translatedKey.y += translatedKey.height / 2;
+            map[key->name] = translatedKey;
+        }
+        break;
+    }
+    case KeyMap::MM700:{
+        // MM700 Mousepad
+        for(const Key* key = MM700Zones; key < MM700Zones + KEYCOUNT_MM700; key++){
             Key translatedKey = *key;
             translatedKey.x += translatedKey.width / 2;
             translatedKey.y += translatedKey.height / 2;
@@ -1368,6 +1646,8 @@ KeyMap::Model KeyMap::getModel(const QString& name){
         return K57_WL;
     if(lower == "k60")
         return K60;
+    if(lower == "k60_tkl")
+        return K60_TKL;
     if(lower == "k63")
         return K63;
     if(lower == "k63_wireless")
@@ -1404,12 +1684,18 @@ KeyMap::Model KeyMap::getModel(const QString& name){
         return KATARPROXT;
     if(lower == "darkcore")
         return DARKCORE;
+    if(lower == "dark_core_rgb_pro")
+        return DARKCORERGBPRO;
     if(lower == "polaris")
         return POLARIS;
+    if(lower == "mm700")
+        return MM700;
     if(lower == "st100")
         return ST100;
     if(lower == "k70mk2")
         return K70MK2;
+    if(lower == "k70tkl")
+        return K70_TKL;
     if(lower == "strafe_mk2")
         return STRAFE_MK2;
     if(lower == "m65e")
@@ -1428,6 +1714,16 @@ KeyMap::Model KeyMap::getModel(const QString& name){
         return GLAIVEPRO;
     if(lower == "k55pro")
         return K55PRO;
+    if(lower == "bragi_dongle")
+        return BRAGI_DONGLE;
+    if(lower == "k100")
+        return K100;
+    if(lower == "k65_mini")
+        return K65_MINI;
+    if(lower == "k70pro")
+        return K70_PRO;
+    if(lower == "k70_core_rgb")
+        return K70_CORE_RGB;
     return NO_MODEL;
 }
 
@@ -1441,6 +1737,8 @@ QString KeyMap::getModel(KeyMap::Model model){
         return "k57_wireless";
     case K60:
         return "k60";
+    case K60_TKL:
+        return "k60_tkl";
     case K63:
         return "k63";
     case K63_WL:
@@ -1477,12 +1775,18 @@ QString KeyMap::getModel(KeyMap::Model model){
         return "katarproxt";
     case DARKCORE:
         return "darkcore";
+    case DARKCORERGBPRO:
+        return "dark_core_rgb_pro";
     case POLARIS:
         return "polaris";
+    case MM700:
+        return "mm700";
     case ST100:
         return "st100";
     case K70MK2:
         return "k70mk2";
+    case K70_TKL:
+        return "k70tkl";
     case STRAFE_MK2:
         return "strafe_mk2";
     case M65E:
@@ -1499,6 +1803,16 @@ QString KeyMap::getModel(KeyMap::Model model){
         return "k95l";
     case GLAIVEPRO:
         return "glaivepro";
+    case BRAGI_DONGLE:
+        return "bragi_dongle";
+    case K100:
+        return "k100";
+    case K65_MINI:
+        return "k65_mini";
+    case K70_PRO:
+        return "k70pro";
+    case K70_CORE_RGB:
+        return "k70_core_rgb";
     default:
         return "";
     }
@@ -1515,16 +1829,24 @@ int KeyMap::modelWidth(Model model){
     switch(model){
     case K60:
         return K60_WIDTH;
+    case K70_CORE_RGB:
+        return K60_WIDTH;
+    case K60_TKL:
+        return K60_TKL_WIDTH;
     case K63:
     case K63_WL:
+    case K70_TKL:
         return K63_WIDTH;
     case K65:
         return K65_WIDTH;
+    case K65_MINI:
+        return K65_MINI_WIDTH;
     case K66:
     case K68:
         return K68_WIDTH;
     case K70:
     case K70MK2:
+    case K70_PRO:
         return K70_WIDTH;
     case K95:
     case K95L:
@@ -1535,6 +1857,8 @@ int KeyMap::modelWidth(Model model){
     case K55:
     case K57_WL:
         return K95P_WIDTH;
+    case K100:
+        return K100_WIDTH;
     case STRAFE:
     case STRAFE_MK2:
         return KSTRAFE_WIDTH;
@@ -1551,6 +1875,7 @@ int KeyMap::modelWidth(Model model){
     case KATAR:
     case KATARPROXT:
     case DARKCORE:
+    case DARKCORERGBPRO:
     case POLARIS:
     case ST100:
     case IRONCLAW:
@@ -1558,6 +1883,8 @@ int KeyMap::modelWidth(Model model){
     case GLAIVEPRO:
     case IRONCLAW_W:
         return M65_WIDTH;
+    case MM700:
+        return MM700_WIDTH;
     default:
         return 0;
     }
@@ -1575,6 +1902,9 @@ int KeyMap::modelHeight(Model model){
     case K68:
     case K70:
     case K70MK2:
+    case K70_PRO:
+    case K70_TKL:
+    case K70_CORE_RGB:
     case K95:
     case K95L:
     case STRAFE:
@@ -1582,8 +1912,14 @@ int KeyMap::modelHeight(Model model){
         return K95_HEIGHT;
     case K95P:
         return K95P_HEIGHT;
+    case K100:
+        return K100_HEIGHT;
     case K60:
         return K60_HEIGHT;
+    case K60_TKL:
+        return K60_TKL_HEIGHT;
+    case K65_MINI:
+        return K65_MINI_HEIGHT;
     case M55:
     case M65:
     case M65E:
@@ -1594,6 +1930,7 @@ int KeyMap::modelHeight(Model model){
     case KATAR:
     case KATARPROXT:
     case DARKCORE:
+    case DARKCORERGBPRO:
     case POLARIS:
     case ST100:
     case M95:
@@ -1603,6 +1940,8 @@ int KeyMap::modelHeight(Model model){
         return M65_HEIGHT;
     case IRONCLAW_W:
         return M65_HEIGHT;
+    case MM700:
+        return MM700_HEIGHT;
     default:
         return 0;
     }
@@ -1610,24 +1949,21 @@ int KeyMap::modelHeight(Model model){
 
 KeyMap::KeyMap(Model _keyModel, Layout _keyLayout) :
     _keys(getMap(_keyModel, _keyLayout)),
-    keyWidth(modelWidth(_keyModel)), keyHeight(modelHeight(_keyModel)),
-    keyModel(_keyModel), keyLayout(_keyLayout)
+    keyModel(_keyModel), keyLayout(_keyLayout),
+    keyWidth(modelWidth(_keyModel)), keyHeight(modelHeight(_keyModel))
 {}
 
 KeyMap::KeyMap() :
-     keyWidth(0), keyHeight(0),
-     keyModel(NO_MODEL), keyLayout(NO_LAYOUT)
+     keyModel(NO_MODEL), keyLayout(NO_LAYOUT),
+     keyWidth(0), keyHeight(0)
 {}
 
 QStringList KeyMap::byPosition() const {
     // Use QMaps to order the keys
     QMap<int, QMap<int, QString> > ordered;
-    QHashIterator<QString, Key> i(*this);
-    while(i.hasNext()){
-        i.next();
-        const Key& key = i.value();
-        ordered[key.y][key.x] = i.key();
-    }
+    for(const Key& key: *this)
+        ordered[key.y][key.x] = key.name;
+
     // Merge them into a single list
     QStringList result;
     QMapIterator<int, QMap<int, QString> > y(ordered);
@@ -1668,8 +2004,14 @@ QString KeyMap::friendlyName(const QString& key, Layout layout){
         return "Screen Brightness Up";
     else if(key == "lightdn")
         return "Screen Brightness Down";
-    else if(key == "eject" || key == "power")
-        return key[0].toUpper() + key.mid(1);   // capitalize first letter
+    else if(key == "eject")
+        return QObject::tr("Eject");
+    else if(key == "power")
+        return QObject::tr("Power");
+    else if(key == "wheellf")
+        return QObject::tr("Wheel Left");
+    else if(key == "wheelrg")
+        return QObject::tr("Wheel Right");
 
     // All other names are found on mice
     map = KeyMap(SCIMITAR, layout);

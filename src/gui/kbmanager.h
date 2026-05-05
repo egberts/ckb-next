@@ -6,6 +6,7 @@
 #include <cmath>
 #include <QSet>
 #include "kb.h"
+#include "idletimer.h"
 
 // Class for managing keyboard devices. Handles scanning devices from the daemon and creating/destroying Kb objects for each device.
 
@@ -38,14 +39,15 @@ public:
     static inline QTimer* scanTimer()       { return _kbManager ? _kbManager->_scanTimer : nullptr; }
     inline bool getDeviceTimerDimmed() { for(Kb* kb : _devices) if(kb->currentLight()->isTimerDimmed()) { return true; } return false; }
 
-#ifdef USE_XCB_SCREENSAVER
+#ifdef Q_OS_LINUX
     // Called to restart the idle timer
     static void setIdleTimer(bool enable);
 #endif
 
 public slots:
-    void brightnessScroll(int delta, Qt::Orientation orientation);
+    void brightnessScroll(QPoint delta);
     void scanKeyboards();
+    void forceDimLights();
 
 signals:
     // A new device was connected.
@@ -57,7 +59,7 @@ signals:
     void versionUpdated();
 
 private slots:
-#ifdef USE_XCB_SCREENSAVER
+#ifdef Q_OS_LINUX
     void idleTimerTick();
 #endif
 
@@ -69,10 +71,12 @@ private:
 
     QSet<Kb*> _devices;
     QTimer* _eventTimer, *_scanTimer, *_saveTimer;
-#ifdef USE_XCB_SCREENSAVER
+#ifdef Q_OS_LINUX
     static QTimer* _idleTimer;
 #endif
     int getLastUsedDeviceIdleTime();
+    static int settingsIdle;
+    inline int getCombinedIdleTime() { return std::min<int>(IdleTimer::getIdleTime(), getLastUsedDeviceIdleTime()); }
 };
 
 #endif // KBMANAGER_H

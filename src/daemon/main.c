@@ -10,11 +10,14 @@
 #include <string.h>
 #include "keymap_patch.h"
 
+#define TERM_REV_VID "\033[7m"
+#define TERM_NORM    "\033[0m"
+
 // usb.c
 extern _Atomic int reset_stop;
 extern int features_mask;
 extern int enable_experimental;
-
+extern const char pidpath[];
 int sighandler_pipe[2] = { 0, 0 };
 
 // Timespec utility function
@@ -137,12 +140,14 @@ void localecase(char* dst, size_t length, const char* src){
     *dst = 0;
 }
 
+// For --search
+extern void fill_usbdevice_protocol(usbdevice* kb);
+
 int main(int argc, char** argv){
     // Set output pipes to buffer on newlines, if they weren't set that way already
     setlinebuf(stdout);
     setlinebuf(stderr);
 
-    printf("ckb-next: Corsair RGB driver %s\n", CKB_NEXT_VERSION_STR);
     // If --help occurs anywhere in the command-line, don't launch the program but instead print usage
     for(int i = 1; i < argc; i++){
         if(!strcmp(argv[i], "--help")){
@@ -152,10 +157,8 @@ int main(int argc, char** argv){
 #else
                         "Usage: ckb-next-daemon [--version] [--gid=<gid>] [--nonotify] [--nobind] [--nonroot]\n"
 #endif
-                        "\n"
-                        "See https://github.com/ckb-next/ckb-next/wiki/CKB-Daemon-Manual for full instructions.\n"
-                        "\n"
-                        "Command-line parameters:\n"
+                        "%s\n\n"
+                        "Options:\n"
                         "    --version\n"
                         "        Print version string to stdout and quit.\n"
                         "    --gid=<gid>\n"
@@ -172,13 +175,16 @@ int main(int argc, char** argv){
 #endif
                         "    --nonroot\n"
                         "        Allows running ckb-next-daemon as a non root user.\n"
-                        "        This will almost certainly not work. Use only if you know what you're doing.\n"
-                        "\n", devpath);
-            exit(0);
+                        "        This will almost certainly not work. Use only if you know what you're doing.\n",
+                        CKB_NEXT_DESCRIPTION, devpath);
+            return 0;
         } else if (!strcmp(argv[i], "--version")){
+            printf("ckb-next-daemon %s\n", CKB_NEXT_VERSION_STR);
             return 0;
         }
     }
+
+    printf("ckb-next-daemon %s\n", CKB_NEXT_VERSION_STR);
 
 #ifdef OS_MAC
     if(argc == 2 && getuid() != 0 && !(strcmp(argv[1], "--request-hid-permission-because-it-doesnt-work-as-root-thanks-apple")))
@@ -186,8 +192,13 @@ int main(int argc, char** argv){
 #endif
 
     // Check PID, quit if already running
-    if(is_pid_running())
+    pid_t dpid;
+    if((dpid = is_pid_running())){
+        ckb_fatal_nofile("ckb-next-daemon is already running (PID %ld).", (long)dpid);
+        ckb_fatal_nofile("Try `systemctl stop ckb-next-daemon` or `killall ckb-next-daemon`.");
+        ckb_fatal_nofile("(If you're certain the process is dead, delete %s and try again.)", pidpath);
         return 1;
+    }
 
     // Read parameters
     int forceroot = 1;
@@ -230,7 +241,12 @@ int main(int argc, char** argv){
                     searchstr++;
             }
 
+            // We need to call this before patchkeys, otherwise the bragi keymap will never be applied
+            fill_usbdevice_protocol(&dev);
+
             patchkeys(&dev);
+
+            int found = -1;
 
             // Search through the patched keymap
             for (int j = 0; j < N_KEYS_EXTENDED; j++) {
@@ -239,17 +255,40 @@ int main(int argc, char** argv){
                     if (*searchstr != '\0')
                         continue;
 
-                    printf("First NULL key has id %d\n", j);
-                    return 0;
+                    found = j;
+                    break;
                 }
 
                 if (!strcasecmp(searchstr, dev.keymap[j].name)) {
-                    printf("Key %s has id %d\n", dev.keymap[j].name, j);
-                    return 0;
+                    found = j;
+                    break;
                 }
             }
-            printf("Key %s was not found\n", searchstr);
-            return 1;
+
+            for (int j = 0; j < N_KEYS_EXTENDED; j++) {
+                if(j == found)
+                    fputs(TERM_REV_VID, stdout);
+
+                printf("{ %10s, %3hd, %4hd },", (dev.keymap[j].name ? dev.keymap[j].name : "NULL"),
+                    dev.keymap[j].led, dev.keymap[j].scan);
+
+                if(j == found)
+                    fputs(TERM_NORM, stdout);
+                putchar('\n');
+            }
+
+            putchar('\n');
+
+            if(found == -1) {
+                printf("Key %s was not found\n", searchstr);
+                return 1;
+            } else if (*searchstr == '\0') {
+                printf("First NULL key has id %d\n", found);
+            } else {
+                printf("Key %s has id %d\n", dev.keymap[found].name, found);
+            }
+
+            return 0;
         } else if(!strcmp(argument, "--enable-experimental")) {
             enable_experimental = 1;
 #ifdef ckb_next_VERSION_IS_RELEASE

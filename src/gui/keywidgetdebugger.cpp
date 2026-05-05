@@ -6,12 +6,17 @@
 #include <QVBoxLayout>
 #include <QDebug>
 #include <QListWidgetItem>
+#include <QSignalBlocker>
+#include <limits>
 
-KeyWidgetDebugger::KeyWidgetDebugger(QWidget *parent) :
+KeyWidgetDebugger::KeyWidgetDebugger(QWidget* parent) :
     QWidget(parent),
     ui(new Ui::KeyWidgetDebugger), w(new KeyWidget(this)), m(KeyMap::Model::NO_MODEL), l(KeyMap::Layout::NO_LAYOUT)
 {
     ui->setupUi(this);
+    ui->devw->setMaximum(std::numeric_limits<short>::max());
+    ui->devh->setMaximum(std::numeric_limits<short>::max());
+
     KeyWidgetLayout* wl = new KeyWidgetLayout;
     wl->addItem(new QWidgetItem(w));
     wl->addItem(new QWidgetItem(new QWidget(this)));
@@ -44,7 +49,13 @@ void KeyWidgetDebugger::on_lightingCheckBox_toggled(bool checked)
 
 void KeyWidgetDebugger::updateMap()
 {
-    map = KeyMap(m, l);
+    map = KeyMapDebug(m, l);
+    {
+        const QSignalBlocker b5(ui->devw);
+        const QSignalBlocker b6(ui->devh);
+        ui->devw->setValue(map.keyWidth);
+        ui->devh->setValue(map.keyHeight);
+    }
     w->map(map);
     ui->keyList->clear();
     ui->keyList->addItems(map.keys());
@@ -57,9 +68,9 @@ void KeyWidgetDebugger::on_layoutComboBox_currentIndexChanged(int arg1)
     updateMap();
 }
 
-void KeyWidgetDebugger::on_modelComboBox_currentIndexChanged(const QString& arg1)
+void KeyWidgetDebugger::on_modelComboBox_currentIndexChanged(int arg1)
 {
-    m = KeyMap::getModel(arg1);
+    m = KeyMap::getModel(ui->modelComboBox->itemText(arg1));
     updateMap();
 }
 
@@ -68,6 +79,11 @@ void KeyWidgetDebugger::on_keyList_currentItemChanged(QListWidgetItem* current, 
     if(!current)
         return;
     Key k = map.key(current->text());
+    // Block signals so that valueChanged events aren't called
+    const QSignalBlocker b1(ui->x);
+    const QSignalBlocker b2(ui->y);
+    const QSignalBlocker b3(ui->w);
+    const QSignalBlocker b4(ui->h);
     ui->x->setValue(k.x);
     ui->y->setValue(k.y);
     ui->w->setValue(k.width);
@@ -99,4 +115,21 @@ void KeyWidgetDebugger::on_w_valueChanged(int arg1)
 void KeyWidgetDebugger::on_h_valueChanged(int arg1)
 {
     HANDLE_SPINBOX_VAL(height, arg1);
+}
+
+void KeyWidgetDebugger::on_showSelectionSurfaces_toggled(bool checked)
+{
+    w->setDebug(checked);
+}
+
+void KeyWidgetDebugger::on_devw_valueChanged(int arg1)
+{
+    map.keyWidth = arg1;
+    w->map(map);
+}
+
+void KeyWidgetDebugger::on_devh_valueChanged(int arg1)
+{
+    map.keyHeight = arg1;
+    w->map(map);
 }

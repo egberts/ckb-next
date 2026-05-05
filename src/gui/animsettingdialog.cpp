@@ -22,6 +22,13 @@ AnimSettingDialog::AnimSettingDialog(QWidget* parent, KbAnim* anim) :
     ui(new Ui::AnimSettingDialog), stopCheck(nullptr), kpStopCheck(nullptr),
     _anim(anim), lastDuration(1.0)
 {
+// Re-declare checkStateChanged() signal if Qt Version is below 6.7.0.
+#if QT_VERSION >= QT_VERSION_CHECK(6, 7, 0)
+    void (QCheckBox::*checkStateChanged)(Qt::CheckState) = &QCheckBox::checkStateChanged;
+#else // QT_VERSION < 6.7.0
+    void (QCheckBox::*checkStateChanged)(int) = &QCheckBox::stateChanged;
+#endif
+
     ui->setupUi(this);
     setWindowTitle(anim->scriptName() + tr(" Animation"));
     ui->animName->setText(anim->name());
@@ -58,7 +65,7 @@ AnimSettingDialog::AnimSettingDialog(QWidget* parent, KbAnim* anim) :
             widget = new QCheckBox(param.prefix, this);
             ((QCheckBox*)widget)->setChecked(value.toBool());
             colSpan = 4;
-            connect((QCheckBox*)widget, &QCheckBox::stateChanged, [=] () {
+            connect((QCheckBox*)widget, checkStateChanged, [=] () {
                 emit updateParam(param.name);
             });
             break;
@@ -77,6 +84,7 @@ AnimSettingDialog::AnimSettingDialog(QWidget* parent, KbAnim* anim) :
             break;
         case AnimScript::Param::DOUBLE:
             widget = new QDoubleSpinBox(this);
+            ((QDoubleSpinBox*)widget)->setStepType(QAbstractSpinBox::AdaptiveDecimalStepType);
             ((QDoubleSpinBox*)widget)->setDecimals(1);
             ((QDoubleSpinBox*)widget)->setMinimum(param.minimum.toDouble());
             ((QDoubleSpinBox*)widget)->setMaximum(param.maximum.toDouble());
@@ -207,6 +215,7 @@ AnimSettingDialog::AnimSettingDialog(QWidget* parent, KbAnim* anim) :
         lastDuration = anim->parameter("duration").toDouble();
         ui->settingsGrid->addWidget(new QLabel(tr("Duration:"), this), row, 1);
         QDoubleSpinBox* spinner = new QDoubleSpinBox(this);
+        spinner->setStepType(QAbstractSpinBox::AdaptiveDecimalStepType);
         spinner->setDecimals(1);
         spinner->setMinimum(0.1);
         spinner->setValue(lastDuration);
@@ -221,7 +230,7 @@ AnimSettingDialog::AnimSettingDialog(QWidget* parent, KbAnim* anim) :
     check->setChecked(anim->parameter("trigger").toBool());
     ui->settingsGrid->addWidget(check, row, 3, 1, 4);
     settingWidgets["trigger"] = check;
-    connect(check, &QCheckBox::stateChanged, [=] () {
+    connect(check, checkStateChanged, [=] () {
         emit updateParam("trigger");
     });
     row++;
@@ -229,7 +238,7 @@ AnimSettingDialog::AnimSettingDialog(QWidget* parent, KbAnim* anim) :
     check->setChecked(anim->parameter("kptrigger").toBool());
     ui->settingsGrid->addWidget(check, row, 3, 1, 2);
     settingWidgets["kptrigger"] = check;
-    connect(check, &QCheckBox::stateChanged, [=] () {
+    connect(check, checkStateChanged, [=] () {
         emit updateParam("kptrigger");
     });
     // Add an option allowing the user to select keypress mode
@@ -326,6 +335,7 @@ AnimSettingDialog::AnimSettingDialog(QWidget* parent, KbAnim* anim) :
         // Add stop times as double values
         // Stop time
         QDoubleSpinBox* spinner = new QDoubleSpinBox(this);
+        spinner->setStepType(QAbstractSpinBox::AdaptiveDecimalStepType);
         spinner->setDecimals(1);
         spinner->setMinimum(0.1);
         spinner->setMaximum(24. * 60. * 60.);
@@ -342,6 +352,7 @@ AnimSettingDialog::AnimSettingDialog(QWidget* parent, KbAnim* anim) :
         ui->timeGrid->addWidget(new QLabel(tr("seconds"), this), 4, 4);
         // KP stop time
         spinner = new QDoubleSpinBox(this);
+        spinner->setStepType(QAbstractSpinBox::AdaptiveDecimalStepType);
         spinner->setDecimals(1);
         spinner->setMinimum(0.1);
         spinner->setMaximum(24. * 60. * 60.);
@@ -376,8 +387,8 @@ AnimSettingDialog::AnimSettingDialog(QWidget* parent, KbAnim* anim) :
     ui->sLicenseLabel->setText(script->license());
     ui->sDescLabel->setText(script->description());
 
-    // Lock dialog size
-    setFixedSize(minimumSize());
+    setMinimumSize(minimumSizeHint());
+    adjustSize();
 }
 
 void AnimSettingDialog::newDuration(double duration){
@@ -522,6 +533,10 @@ void AnimSettingDialog::on_kpRepeatBox_valueChanged(double arg1){
     updateParam("kprepeat");
 }
 
+#if QT_VERSION >= QT_VERSION_CHECK(6, 7, 0)
+void AnimSettingDialog::on_kpReleaseBox_checkStateChanged(Qt::CheckState arg1){
+#else // QT_VERSION < 6.7.0
 void AnimSettingDialog::on_kpReleaseBox_stateChanged(int arg1){
+#endif
     updateParam("kprelease");
 }

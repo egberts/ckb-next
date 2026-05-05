@@ -1,5 +1,80 @@
 # Change Log
 
+## [v0.6.2](https://github.com/ckb-next/ckb-next/tree/v0.6.2) (2025-03-17)
+[Full Changelog](https://github.com/ckb-next/ckb-next/compare/v0.6.1...v0.6.2)
+
+This release addresses a **major regression** in v0.6.1.
+
+Support for new devices:
+- MM700
+- K70 RGB Pro
+
+Bug fixes:
+- Some keys, bindings, or DPI not working on any of the following devices: M55 Pro, M95, Ironclaw Wireless, Harpoon Wireless, Katar Pro XT, K55 Pro.
+
+Notes for packagers:
+- Please drop v0.6.1 or backport https://github.com/ckb-next/ckb-next/commit/7a7d0c80bf1ef56a024606ae49551ce84872ce72 as soon as possible.
+
+## [v0.6.1](https://github.com/ckb-next/ckb-next/tree/v0.6.1) (2025-03-09)
+[Full Changelog](https://github.com/ckb-next/ckb-next/compare/v0.6.0...v0.6.1)
+
+Support for new devices:
+- K100 RGB Optical-Mechanical
+- K70 Core TKL RGB
+- K65 Mini
+
+Features:
+- Port to Qt6
+
+Bug fixes:
+- The GUI no longer crashes on device disconnect
+- The slash key on the Brazilian (ABNT) layout now works with modern keyboards
+- Prevent possible USB connection issues on legacy devices
+- OpenRC service file is POSIX compliant and is now able to pass arguments to the daemon
+- Resolve a crash on pure XWayland systems
+- Prevent memory leak on active window detection code
+
+Notes for packagers:
+- Qt version 5.12 or greater is now required
+- Bump minimum CMake version to 3.13
+- Bump CXX_STANDARD to 17 for Qt6 
+- Compiling with -Werror=odr no longer fails due to a mismatch
+
+## [v0.6.0](https://github.com/ckb-next/ckb-next/tree/v0.6.0) (2023-06-23)
+[Full Changelog](https://github.com/ckb-next/ckb-next/compare/v0.5.0...v0.6.0)
+
+Support for new devices:
+- K55 RGB PRO
+- K55 RGB PRO XT
+- K60 PRO (Monochrome)
+- K60 PRO TKL RGB
+- Dark Core RGB Pro (experimental)
+- Dark Core RGB Pro SE (experimental)
+- Slipstream wireless dongle (when paired with a single supported device)
+
+Important bugfixes:
+- The <kbd>Fn</kbd> key now behaves as expected on the K65
+- The GUI now accepts macros containing the ISO backslash key
+- A workaround is now implemented to prevent the media keys on the Strafe from getting stuck pressed
+- The daemon no longer crashes with a `buffer overflow detected` message on start under certain conditions
+- The WinLock LED now functions on the K55 RGB and K55 RGB Pro XT
+- The GUI no longer crashes under certain conditions when the sound server is being restarted
+- The battery states are now reported correctly in the GUI
+- The brightness is now correctly set for newer devices (and the lights now turn off instantly)
+
+New features:
+- The device previews are now rendered using the GPU
+- Horizontal scrolling is now available for binding
+- The mute indicator can now indicate either the default output or input audio device
+- The music visualizer now supports automatic gain control, automatically adapting to volume changes
+- It is now possible to pair wireless devices with dongles (not in GUI yet)
+
+Notes for packagers:
+- There is a new binary `ckb-next-sinfo`. It is not optional and must be bundled with the GUI. It is not meant to be ran by the end user.
+- The explicit dependency to Xlib has been dropped. Only XCB is required
+- pulse-simple is no longer used. There is still a dependency on libpulse
+- Quazip (for Qt5) is no longer bundled and is required
+
 ## [v0.5.0](https://github.com/ckb-next/ckb-next/tree/v0.5.0) (2022-05-27)
 [Full Changelog](https://github.com/ckb-next/ckb-next/compare/v0.4.4...v0.5.0)
 

@@ -58,7 +58,7 @@ int os_usb_control(usbdevice* kb, ctrltransfer* transfer, const char* file, int 
 int os_usb_interrupt_out(usbdevice* kb, unsigned int ep, unsigned int len, uchar* data, const char* file, int line)
 {
 #ifdef DEBUG_USB_SEND
-    print_urb_buffer("Sending:", data, MSG_SIZE, file, line, __func__, INDEX_OF(kb, keyboard), (uchar)ep);
+    print_urb_buffer("Sending:", data, (len > MSG_SIZE ? len : MSG_SIZE), file, line, __func__, INDEX_OF(kb, keyboard), (uchar)ep);
 #endif
     const struct usbdevfs_bulktransfer transfer = { .ep = ep, .len = len, .timeout = 5000, .data = data, };
     int res = ioctl(kb->handle - 1, USBDEVFS_BULK, &transfer);
@@ -144,7 +144,7 @@ void* os_inputmain(void* context){
         // Try to find any of the wanted endpoints in the current interface
         // We'll assume that each interface has at most one IN endpoint
         ushort size = 64;
-        ushort ep = 0;
+        uchar ep = 0;
         for(int i = 0; (ep = kb->input_endpoints[i]); i++){
             // Build the path
             snprintf(finalpath, finalpathlen, "%s/ep_%02hhx", path, ep);
@@ -154,7 +154,7 @@ void* os_inputmain(void* context){
             // Read its wMaxPacketSize
             if(sizehex && sscanf(sizehex, "%hx", &size) == 1)
             {
-                ckb_info("Found EP 0x%hx at %s", ep, finalpath);
+                ckb_info("Found EP 0x%hhx at %s", ep, finalpath);
                 udev_device_unref(child);
                 break;
             }

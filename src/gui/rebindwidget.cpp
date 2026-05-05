@@ -40,8 +40,6 @@ RebindWidget::RebindWidget(QWidget *parent) :
     ui->setupUi(this);
     ui->lightWrapBox->hide();
     ui->modeWrapBox->hide();
-    ui->programKpExtra->hide();
-    ui->programKrExtra->hide();
 
     // Populate key lists
     modKeys << "caps" << "lshift" << "rshift" << "lctrl" << "rctrl" << "lwin" << "rwin" << "lalt" << "ralt" << "rmenu" << "fn";
@@ -50,7 +48,7 @@ RebindWidget::RebindWidget(QWidget *parent) :
     mediaKeys << "stop" << "prev" << "play" << "next" << "volup" << "voldn" << "mute" << "eject";
     mouseKeys << "mouse1" << "mouse2" << "mouse3";
     mouseExtKeys << "mouse4" << "mouse5" << "mouse6" << "mouse7" << "mouse8";
-    wheelKeys << "wheelup" << "wheeldn";
+    wheelKeys << "wheelup" << "wheeldn" << "wheellf" << "wheelrg";
 #ifndef Q_OS_MACOS
     fnKeys << "f21" << "f22" << "f23" << "f24";
 #endif
@@ -83,7 +81,7 @@ RebindWidget::RebindWidget(QWidget *parent) :
     // Add tip label
     ui->progTipLabel->setText("Tip: use the open command to launch a file, directory, or app. For instance, to start Safari:\n  open /Applications/Safari.app");
 #else
-    ui->progTipLabel->setText("Tip: use xdg-open to launch a file or directory. For instance, to open your home folder:\n  xdg-open " + QStandardPaths::writableLocation(QStandardPaths::HomeLocation));
+    ui->progTipLabel->setText(tr("Tip: use xdg-open to launch a file or directory. For instance, to open your home folder:\n  xdg-open ") + QStandardPaths::writableLocation(QStandardPaths::HomeLocation));
 #endif
     connect(ui->tabWidget, &QTabWidget::currentChanged, this, &RebindWidget::tabChanged);
     ui->tableView->setModel(&macroLines);
@@ -103,6 +101,8 @@ RebindWidget::RebindWidget(QWidget *parent) :
     });
     connect(&macroLines, &QAbstractTableModel::dataChanged, this, &RebindWidget::regeneratePreview);
     connect(&macroLines, &QAbstractTableModel::modelReset, this, &RebindWidget::regeneratePreview);
+    ui->tableView->horizontalHeader()->setSectionResizeMode(2, QHeaderView::Stretch);
+    ui->tableView->horizontalHeader()->setSectionResizeMode(3, QHeaderView::Stretch);
 }
 
 RebindWidget::~RebindWidget(){
@@ -349,8 +349,13 @@ void RebindWidget::setSelection(const QStringList& newSelection, bool applyPrevi
             if (act.isMacro()) {
                 // This string needs to exist for as long as the references below are used
                 QString value = act.value();
+#if QT_VERSION < QT_VERSION_CHECK(6, 0, 0)
                 // Split the action and discard the "$macro" from the beginning
                 QVector<QStringRef> macroData = value.midRef(7).split(QChar(':'));
+#else
+                QStringView valueView(value);
+                QList<QStringView> macroData = valueView.sliced(7).split(QChar(':'));
+#endif
                 const int dataCount = macroData.count();
                 // Old format doesn't have the last field, which is the raw macro data
                 // It might not exist at all (count == 3) or it might be set to "x"
@@ -361,8 +366,8 @@ void RebindWidget::setSelection(const QStringList& newSelection, bool applyPrevi
                     ui->macroName->setText(macroName);
 
                     // Pick the appropriate string to parse due to legacy formats
-                    QStringRef macroString = macroData[0];
-                    if(dataCount == 4 && macroData[3] != "x")
+                    QStringView macroString = macroData[0];
+                    if(dataCount == 4 && macroData[3] != QStringLiteral("x"))
                         macroString = macroData[3];
 
                     // Try to parse the string
@@ -372,7 +377,15 @@ void RebindWidget::setSelection(const QStringList& newSelection, bool applyPrevi
                     // If the daemon macro string contains even a single delay, then the we set the
                     // delay to "as typed" instead of "default"
                     QRegularExpression re("=\\d+");
-                    if(re.match(macroData[0]).hasMatch())
+// Use different match function depending on Qt version, 6.5.0 deprecates
+// QRegularExpression::match() in favor of QRegularExpression::matchView() when
+// using a QStringView parameter.
+#if QT_VERSION >= QT_VERSION_CHECK(6, 5, 0)
+                    bool has_match = re.matchView(macroData[0]).hasMatch();
+#else // QT_VERSION < 6.5.0
+                    bool has_match = re.match(macroData[0]).hasMatch();
+#endif
+                    if(has_match)
                         ui->rb_delay_asTyped->setChecked(true);
                     else
                         ui->rb_delay_default->setChecked(true);
@@ -659,22 +672,18 @@ void RebindWidget::on_lockBox_currentIndexChanged(int index){
 void RebindWidget::on_programKpBox_textChanged(const QString &arg1){
     if(arg1.isEmpty()){
         ui->programKpButton->setChecked(false);
-        ui->programKpExtra->hide();
     } else {
         ui->programKpButton->setChecked(true);
         setBox(ui->programKpBox);
-        ui->programKpExtra->show();
     }
 }
 
 void RebindWidget::on_programKrBox_textChanged(const QString &arg1){
     if(arg1.isEmpty()){
         ui->programKrButton->setChecked(false);
-        ui->programKrExtra->hide();
     } else {
         ui->programKrButton->setChecked(true);
         setBox(ui->programKrBox);
-        ui->programKrExtra->show();
     }
 }
 
@@ -887,7 +896,7 @@ void RebindWidget::insertIntoMacroPreview(const bool keydown, const bool printab
 
 void RebindWidget::macroLineRead(QString line, qint64 ustime, bool keydown){
     const bool printable = (line.length() == 1);
-    macroLines.append(MacroLine(line, ustime, MacroLine::MACRO_DELAY_DEFAULT, keydown));
+    macroLines.append(MacroLine(line, ustime, ustime, keydown));
 
     // Add keystroke to the key actions textedit
     // "+k", "-k", these can be represented as text

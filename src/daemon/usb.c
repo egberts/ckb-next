@@ -36,7 +36,10 @@ const dpi_list mouse_dpi_list[] = {
     { P_NIGHTSWORD, 18000},
     { P_IRONCLAW_W_U, 18000 },
     { P_HARPOON_WL_U, 10000 },
+    { P_DARK_CORE_RGB_PRO, 18000 },
+    { P_DARK_CORE_RGB_PRO_SE, 18000 },
     { P_GLAIVE_PRO, 16000 },
+    { P_SCIMITAR_ELITE_BRAGI, 18000 },
     { 0, 0 }, // Keep last and do not remove
 };
 
@@ -50,6 +53,7 @@ const device_desc models[] = {
     { V_CORSAIR, P_K60_PRO_RGB_LP, },
     { V_CORSAIR, P_K60_PRO_RGB_SE, },
     { V_CORSAIR, P_K60_PRO_MONO, },
+    { V_CORSAIR, P_K60_PRO_TKL, },
     { V_CORSAIR, P_K63_NRGB, },
     { V_CORSAIR, P_K63_NRGB_WL, },
     { V_CORSAIR, P_K63_NRGB_WL2, },
@@ -71,6 +75,13 @@ const device_desc models[] = {
     { V_CORSAIR, P_K70_MK2, },
     { V_CORSAIR, P_K70_MK2SE, },
     { V_CORSAIR, P_K70_MK2LP, },
+    { V_CORSAIR, P_K70_TKL, },
+    { V_CORSAIR, P_K70_TKL_CHAMP_OPTIC, },
+    { V_CORSAIR, P_K70_PRO, },
+    { V_CORSAIR, P_K70_PRO_OPTIC, },
+    { V_CORSAIR, P_K70_CORE_RGB, },
+    { V_CORSAIR, P_K70_CORE_RGB_2, },
+    { V_CORSAIR, P_K70_CORE_RGB_3, },
     { V_CORSAIR, P_K90_LEGACY, },
     { V_CORSAIR, P_K95, },
     { V_CORSAIR, P_K95_LEGACY, },
@@ -82,6 +93,10 @@ const device_desc models[] = {
     { V_CORSAIR, P_K95_PLATINUM_XT, },
     { V_CORSAIR, P_K57_D, },
     { V_CORSAIR, P_K57_U, },
+    { V_CORSAIR, P_K100_OPTICAL, },
+    { V_CORSAIR, P_K100_MECHANICAL, },
+    { V_CORSAIR, P_K100_OPTICAL_VARIANT, },
+    { V_CORSAIR, P_K65_MINI, },
     // Mice
     { V_CORSAIR, P_M55_RGB_PRO, },
     { V_CORSAIR, P_M65, },
@@ -107,6 +122,8 @@ const device_desc models[] = {
     { V_CORSAIR, P_DARK_CORE_SE, },
     { V_CORSAIR, P_DARK_CORE_WL, },
     { V_CORSAIR, P_DARK_CORE_SE_WL, },
+    { V_CORSAIR, P_DARK_CORE_RGB_PRO, },
+    { V_CORSAIR, P_DARK_CORE_RGB_PRO_WL, },
     { V_CORSAIR, P_DARK_CORE_RGB_PRO_SE, },
     { V_CORSAIR, P_DARK_CORE_RGB_PRO_SE_WL, },
     { V_CORSAIR, P_IRONCLAW_W_U, },
@@ -114,10 +131,14 @@ const device_desc models[] = {
     { V_CORSAIR, P_HARPOON_WL_U, },
     { V_CORSAIR, P_HARPOON_WL_D, },
     { V_CORSAIR, P_GLAIVE_PRO, },
+    { V_CORSAIR, P_SCIMITAR_ELITE_BRAGI, },
     // Mousepads
     { V_CORSAIR, P_POLARIS, },
+    { V_CORSAIR, P_MM700, },
     // Headset stands
     { V_CORSAIR, P_ST100, },
+    // Misc
+    { V_CORSAIR, P_GENERIC_BRAGI_DONGLE, },
 };
 
 const size_t N_MODELS = sizeof(models) / sizeof(device_desc);
@@ -179,7 +200,9 @@ const char* vendor_str(ushort vendor){
 /// product_str() needs the \a product \a ID
 ///
 const char* product_str(ushort product){
-    if(product == P_K95_LEGACY)
+    if(product == P_K100_OPTICAL || product == P_K100_MECHANICAL || product == P_K100_OPTICAL_VARIANT)
+        return "k100";
+    if(product == P_K95_LEGACY || product == P_K90_LEGACY)
         return "k95l";
     if(product == P_K95)
         return "k95";
@@ -189,10 +212,18 @@ const char* product_str(ushort product){
         return "k70";
     if(product == P_K70_MK2 || product == P_K70_MK2SE || product == P_K70_MK2LP)
         return "k70mk2";
+    if(product == P_K70_TKL || product == P_K70_TKL_CHAMP_OPTIC)
+        return "k70tkl";
+    if(product == P_K70_PRO || product == P_K70_PRO_OPTIC)
+        return "k70pro";
+    if(product == P_K70_CORE_RGB || product == P_K70_CORE_RGB_2 || product == P_K70_CORE_RGB_3)
+        return "k70_core_rgb";
     if(product == P_K68 || product == P_K68_NRGB)
         return "k68";
     if(product == P_K65 || product == P_K65_LEGACY || product == P_K65_LUX || product == P_K65_RFIRE)
         return "k65";
+    if(product == P_K65_MINI)
+        return "k65_mini";
     if(product == P_K66)
         return "k66";
     if(product == P_K63_NRGB)
@@ -201,6 +232,8 @@ const char* product_str(ushort product){
         return "k63_wireless";
     if(product == P_K60_PRO_RGB || product == P_K60_PRO_RGB_LP || product == P_K60_PRO_RGB_SE || product == P_K60_PRO_MONO)
         return "k60";
+    if(product == P_K60_PRO_TKL)
+        return "k60_tkl";
     if(product == P_K57_U || product == P_K57_D || product == P_K55_PRO_XT)
         return "k57_wireless";
     if(product == P_K55)
@@ -221,7 +254,7 @@ const char* product_str(ushort product){
         return "m65e";
     if(product == P_SABRE_O || product == P_SABRE_L || product == P_SABRE_N || product == P_SABRE_O2)
         return "sabre";
-    if(product == P_SCIMITAR || product == P_SCIMITAR_PRO || product == P_SCIMITAR_ELITE)
+    if(product == P_SCIMITAR || product == P_SCIMITAR_PRO || product == P_SCIMITAR_ELITE || product == P_SCIMITAR_ELITE_BRAGI)
         return "scimitar";
     if(product == P_HARPOON || product == P_HARPOON_PRO)
         return "harpoon";
@@ -238,137 +271,115 @@ const char* product_str(ushort product){
         return "ironclaw";
     if(product == P_NIGHTSWORD)
         return "nightsword";
-    if(product == P_IRONCLAW_W_U || product == P_IRONCLAW_W_D || product == P_DARK_CORE_RGB_PRO_SE || product == P_DARK_CORE_RGB_PRO_SE_WL || product == P_HARPOON_WL_U || product == P_HARPOON_WL_D)
+    if(product == P_IRONCLAW_W_U || product == P_IRONCLAW_W_D || product == P_HARPOON_WL_U || product == P_HARPOON_WL_D)
         return "ironclaw_wireless";
+    if(product == P_DARK_CORE_RGB_PRO || product == P_DARK_CORE_RGB_PRO_WL || product == P_DARK_CORE_RGB_PRO_SE || product == P_DARK_CORE_RGB_PRO_SE_WL)
+        return "dark_core_rgb_pro";
     if(product == P_POLARIS)
         return "polaris";
     if(product == P_DARK_CORE || product == P_DARK_CORE_WL || product == P_DARK_CORE_SE || product == P_DARK_CORE_SE_WL)
         return "darkcore";
     if(product == P_ST100)
         return "st100";
+    if(product == P_GENERIC_BRAGI_DONGLE)
+        return "bragi_dongle";
+    if(product == P_MM700)
+        return "mm700";
     return "";
 }
 
-/// brief .
-///
-/// \brief get_vtable returns the correct vtable pointer
-/// \param vendor short usb vendor ID
-/// \param product short usb product ID
-/// \return Depending on the type and model, the corresponding vtable pointer is returned (see below)
-///
-/// At present, we have three different vtables:
-/// - \c vtable_mouse is used for all mouse types. This may be wrong with some newer mice?
-/// - \c vtable_keyboard is used for all RGB Keyboards.
-/// - \c vtable_keyboard_nonrgb for all the rest.
-///
-/// \todo Is the last point really a good decision and always correct?
-///
 static const devcmd* get_vtable(usbdevice* kb){
-    ushort vendor = kb->vendor;
-    ushort product = kb->product;
-    if(kb->protocol == PROTO_BRAGI) {
+    switch(kb->protocol){
+    case PROTO_BRAGI:
         if(IS_DONGLE(kb))
             return &vtable_bragi_dongle;
-        else if(IS_MOUSE(vendor, product))
+        else if(IS_MOUSE_DEV(kb))
             return &vtable_bragi_mouse;
+        else if(IS_MOUSEPAD_DEV(kb))
+            return &vtable_bragi_mousepad;
         else
             return &vtable_bragi_keyboard;
-    } else if(IS_MOUSE(vendor, product)) {
-        if(IS_LEGACY(vendor, product))
+        break;
+    case PROTO_LEGACY:
+        if(IS_MOUSE_DEV(kb))
             return &vtable_mouse_legacy;
-        else if(IS_WIRELESS(vendor, product))
-            return &vtable_mouse_wireless;
         else
-            return &vtable_mouse;
-    } else if(IS_MOUSEPAD(vendor, product) || product == P_ST100) {
-        return &vtable_mousepad;
-    } else {
-        if(IS_LEGACY(vendor, product))
             return &vtable_keyboard_legacy;
-        else if(IS_WIRELESS(vendor, product))
-            return &vtable_keyboard_wireless;
-        else
-            return &vtable_keyboard;
+        break;
+    case PROTO_NXP:
+        if(IS_MOUSE_DEV(kb)) {
+            if(IS_WIRELESS_DEV(kb))
+                return &vtable_mouse_wireless;
+            else
+                return &vtable_mouse;
+        } else if(IS_MOUSEPAD_DEV(kb) || kb->product == P_ST100) {
+            return &vtable_mousepad;
+        } else {
+            if(IS_WIRELESS_DEV(kb))
+                return &vtable_keyboard_wireless;
+            else
+                return &vtable_keyboard;
+        }
+        break;
+    default:
+        ckb_fatal("ckb%d: Unknown protocol for device", INDEX_OF(kb, keyboard));
     }
+    return NULL;
 }
 
 // USB device main loop
-/// brief .
-///
-/// \brief devmain is called by _setupusb
-/// \param kb the pointer to the device. Even if it has the name kb, it is valid also for a mouse (the whole driver seems to be implemented first for a keyboard).
-/// \return always a nullptr
-///
-/// # Synchronization
-/// The syncing via mutexes is interesting:
-/// 1. \a imutex (the Input mutex)\n
-/// This one is locked in \c setupusb().
-/// That function does only two things: Locking the mutex and trying to start a thread at \c _setupusb().
-/// _setupusb() unlocks \a imutex  after getting some buffers and initalizing internal structures from the indicators
-/// (this function often gets problems with error messages like "unable to read indicators" or "Timeout bla blubb").
-/// \warning have a look at \a updateindicators() later.
-/// \warning if creating the thread is not successful, the \a imutex remains blocked. Have a look at setupusb() later.
-///
-/// 2. \a dmutex (the Device mutex)\n
-/// This one is very interesting, because it is handled in devmain().
-/// It seems that it is locked only in \a _ledthread(), which is a thread created in \a os_setupindicators().
-/// os_setupindicators() again is called in \a _setupusb() long before calling devmain().
-/// So this mutex is locked when we start the function as the old comment says.\n
-/// Before reading from the FIFO and direct afterwards an unlock..lock sequence is implemented here.
-/// Even if only the function readlines() should be surrounded by the unlock..lock,
-/// the variable definition of the line pointer is also included here. Not nice, but does not bother either.
-/// Probably the Unlock..lock is needed so that now another process can change the control structure \a linectx while we wait in readlines().
-/// \todo Hope to find the need for dmutex usage later.
-/// \n Should this function be declared as pthread_t* function, because of the defintion of pthread-create? But void* works also...
-///
 static void* devmain(usbdevice* kb){
     /// \attention dmutex should still be locked when this is called
-    int kbfifo = kb->infifo - 1;
-    ///
-    /// First a \a readlines_ctx buffer structure is initialized by \c readlines_ctx_init().
-    readlines_ctx linectx;
-    readlines_ctx_init(&linectx);
-    ///
-    /// After some setup functions, beginning in _setupusb() which has called devmain(),
-    /// we read the command input-Fifo designated to that device in an endless loop.
-    /// This loop has two possible exits (plus reaction to signals, not mentioned here).
+    const int kbfifo = kb->infifo - 1;
+    readlines_ctx* linectx = calloc(1, sizeof(readlines_ctx));
+
     while(1){
-        ///
-        /// If the reading via readlines() is successful (we might have read multiple lines),
-        /// the interpretation is done by readcmd() if the connection to the device is still available
-        /// This is true if the kb-structure has a handle and an event pointer both != Null).
-        /// If not, the loop is left (the first exit point).
         queued_mutex_unlock(dmutex(kb));
-        // Read from FIFO
-        const char* line;
-        int lines = readlines(kbfifo, linectx, &line);
+        // Read from cmd FIFO
+        int ret = readline_fifo(kbfifo, linectx);
         wait_until_suspend_processed();
         queued_mutex_lock(dmutex(kb));
+
         // End thread when the handle is removed
         if(kb->status == DEV_STATUS_DISCONNECTING || kb->status == DEV_STATUS_DISCONNECTED)
             break;
-        ///
-        /// if nothing is in the line buffer (some magic interrupt?),
-        /// continue in the endless while without any reaction.
-        if(lines){
-            /// \todo readcmd() gets a \b line, not \b lines. Have a look on that later.
-            if(readcmd(kb, line)){
-                ///
-                /// If interpretation and communication with the usb device got errors,
-                /// they are signalled by readcmd() (non zero retcode).
-                /// In this case the usb device is closed via closeusb()
-                /// and the endless loop is left (the second exit point).
-                // USB transfer failed; destroy device
+
+        if(ret == 0) {
+            // EOF
+            break;
+        } else if(ret < 0) {
+            // Retry
+            continue;
+        } else {
+            if(readcmd(kb, linectx->buf)){
+                // USB transfer failed or command requested disconnect; destroy device
                 closeusb(kb);
-                break;
+                goto cleanup;
             }
         }
     }
+cleanup:
     queued_mutex_unlock(dmutex(kb));
-    ///
-    /// After leaving the endless loop the readlines-ctx structure and its buffers are freed by readlines_ctx_free().
-    readlines_ctx_free(linectx);
+    free(linectx);
     return 0;
+}
+
+void fill_usbdevice_protocol(usbdevice* kb){
+    if(USES_BRAGI(kb->vendor, kb->product))
+        kb->protocol = PROTO_BRAGI;
+    else if(IS_LEGACY_DEV(kb))
+        kb->protocol = PROTO_LEGACY;
+    else
+        kb->protocol = PROTO_NXP;
+
+    if(USES_BRAGI_JUMBO(kb->vendor, kb->product))
+        kb->out_ep_packet_size = BRAGI_JUMBO_SIZE;
+    else if(USES_BRAGI_LARGE(kb->vendor, kb->product))
+        kb->out_ep_packet_size = BRAGI_LARGE_SIZE;
+    else
+        kb->out_ep_packet_size = MSG_SIZE;
+
+    ckb_info("ckb%d: Adding device with protocol %d", INDEX_OF(kb, keyboard), (int)kb->protocol);
 }
 
 /// brief .
@@ -414,14 +425,7 @@ static void* _setupusb(void* context){
     ///
     usbdevice* kb = context;
     queued_mutex_lock(dmutex(kb));
-    if(USES_BRAGI(kb->vendor, kb->product))
-        kb->protocol = PROTO_BRAGI;
-
-    if(USES_BRAGI_JUMBO(kb->vendor, kb->product))
-        kb->out_ep_packet_size = BRAGI_JUMBO_SIZE;
-    else
-        kb->out_ep_packet_size = MSG_SIZE;
-
+    fill_usbdevice_protocol(kb);
     queued_mutex_lock(imutex(kb));
     // Set standard fields
     ushort vendor = kb->vendor, product = kb->product;
@@ -430,7 +434,7 @@ static void* _setupusb(void* context){
     vt = &kb->vtable;
 
     if(!(IS_DONGLE(kb) && kb->protocol == PROTO_BRAGI))
-        kb->features = (IS_LEGACY(vendor, product) ? FEAT_STD_LEGACY : FEAT_STD_RGB) & features_mask;
+        kb->features = (IS_LEGACY_DEV(kb) ? FEAT_STD_LEGACY : FEAT_STD_RGB) & features_mask;
     if(SUPPORTS_ADJRATE(kb))
         kb->features |= FEAT_ADJRATE;
     if(IS_MONOCHROME(vendor, product))
@@ -446,16 +450,11 @@ static void* _setupusb(void* context){
     if(kb->protocol == PROTO_BRAGI)
         kb->features &= ~FEAT_FWUPDATE;
 
-    kb->usbdelay = USB_DELAY_DEFAULT;
-
     // Check if the device needs a patched keymap, and if so patch it.
     patchkeys(kb);
 
     // Perform OS-specific setup
-    ///
-    /// - A fixed 100ms wait is the start.
-    /// <b>Although the DELAY_LONG macro is given a parameter, it is ignored. Occasionally refactor it.</b>
-    DELAY_LONG(kb);
+    DELAY_100MS();
 
     ///
     /// - The first relevant point is the operating system-specific opening of the interface in os_setupusb().
@@ -614,7 +613,7 @@ int revertusb(usbdevice* kb){
         return 0;
 
     // FIXME: This should be moved to a device-specific function
-    if(IS_LEGACY_DEV(kb)){
+    if(kb->protocol == PROTO_LEGACY){
         nk95cmd(kb, NK95_HWON);
         return 0;
     }
@@ -632,11 +631,11 @@ int revertusb(usbdevice* kb){
 ///
 int _resetusb(usbdevice* kb, const char* file, int line){
     // Perform a USB reset
-    DELAY_LONG(kb);
+    DELAY_100MS();
     int res = os_resetusb(kb, file, line);
     if(res)
         return res;
-    DELAY_LONG(kb);
+    DELAY_100MS();
     // Re-initialize the device
     if(kb->vtable.start(kb, kb->active) != 0)
         return -1;
@@ -692,7 +691,7 @@ int _usbsend(usbdevice* kb, void* messages, size_t msg_len, int count, const cha
     for(int i = 0; i < count; i++){
         // Send each message via the OS function
         while(1){
-            DELAY_SHORT(kb);
+            kb->vtable.delay(kb, DELAY_SEND);
             queued_mutex_lock(mmutex(kb)); ///< Synchonization between macro and color information
             int res = kb->vtable.write(kb, messages + i * msg_len, msg_len, 0, file, line);
             queued_mutex_unlock(mmutex(kb));
@@ -706,7 +705,7 @@ int _usbsend(usbdevice* kb, void* messages, size_t msg_len, int count, const cha
             if(reset_stop)
                 return 0;
             // Retry as long as the result is temporary failure
-            DELAY_LONG(kb);
+            DELAY_100MS();
         }
     }
     return total_sent;
@@ -720,7 +719,7 @@ int _usbrecv(usbdevice* kb, void* out_msg, size_t msg_len, uchar* in_msg, const 
     for (int try = 0; try < 5; try++) {
         // Send the output message
         queued_mutex_lock(mmutex(kb)); ///< Synchonization between macro and color information
-        DELAY_SHORT(kb);
+        kb->vtable.delay(kb, DELAY_SEND);
         int res = kb->vtable.write(kb, out_msg, msg_len, 1, file, line);
         queued_mutex_unlock(mmutex(kb));
         if (res == 0)
@@ -729,12 +728,11 @@ int _usbrecv(usbdevice* kb, void* out_msg, size_t msg_len, uchar* in_msg, const 
             // Retry on temporary failure
             if (reset_stop)
                 return 0;
-            DELAY_LONG(kb);
+            DELAY_100MS();
             continue;
         }
         // Wait for the response
-        if(!(kb->fwversion >= 0x120 || IS_V2_OVERRIDE(kb)) && kb->protocol != PROTO_BRAGI)
-            DELAY_MEDIUM(kb);
+        kb->vtable.delay(kb, DELAY_RECV);
         res = kb->vtable.read(kb, in_msg, msg_len, 0, file, line);
         if(res == 0)
             return 0;
@@ -742,8 +740,7 @@ int _usbrecv(usbdevice* kb, void* out_msg, size_t msg_len, uchar* in_msg, const 
             return res;
         if(reset_stop)
             return 0;
-        if(!(kb->fwversion >= 0x120 || IS_V2_OVERRIDE(kb)) && kb->protocol != PROTO_BRAGI)
-            DELAY_LONG(kb);
+        DELAY_100MS();
     }
     // Give up
     ckb_err_fn("Too many send/recv failures. Dropping.", file, line);

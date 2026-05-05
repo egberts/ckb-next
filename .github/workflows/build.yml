@@ -3,6 +3,7 @@ name: Build
 
 on:
   - push
+  - pull_request
 
 jobs:
   Linux:
@@ -11,18 +12,20 @@ jobs:
     strategy:
       matrix:
         image:
-          - 'amazonlinux:2'
           - 'archlinux:latest'
-          - 'almalinux:8'
           - 'rockylinux:8'
-          - 'debian:10'
+          - 'rockylinux:9'
           - 'debian:11'
-          - 'fedora:35'
-          - 'fedora:36'
-          - 'ubuntu:20.04'
+          - 'debian:12'
+          - 'fedora:42'
+          - 'fedora:41'
+          - 'fedora:rawhide'
           - 'ubuntu:22.04'
+          - 'ubuntu:24.04'
+          - 'ubuntu:rolling'
+          - 'alpine:latest'
         build_type:
-          - Release
+          - Debug
         compiler:
           - GNU
       fail-fast: false
@@ -41,6 +44,8 @@ jobs:
             pacman --sync --refresh --sysupgrade --noconfirm git
           elif command -v yum &> /dev/null; then
             yum --assumeyes install git
+          elif command -v apk &> /dev/null; then
+            apk add git bash
           fi
 
       - name: Checkout code

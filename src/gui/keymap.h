@@ -85,6 +85,15 @@ public:
         K57_WL,
         K63_WL,
         K55PRO,
+        DARKCORERGBPRO,
+        K60_TKL,
+        BRAGI_DONGLE,
+        K100,
+        K65_MINI,
+        K70_TKL,
+        MM700,
+        K70_PRO,
+        K70_CORE_RGB,
         _MODEL_MAX
     };
     // Key layouts (ordered alphabetically by name)
@@ -129,14 +138,14 @@ public:
     // Type of device
     inline static bool  isKeyboard(Model model)     { return !isMouse(model) && !isMousepad(model) && !isHeadsetStand(model) && model != NO_MODEL; }
     inline bool         isKeyboard() const          { return isKeyboard(keyModel); }
-    inline static bool  isMouse(Model model)        { return model == M55 || model == M65 || model == SABRE || model == SCIMITAR || model == HARPOON || model == GLAIVE || model == KATAR || model == KATARPROXT || model == M65E || model == M95 || model == IRONCLAW || model == NIGHTSWORD || model == DARKCORE || model == IRONCLAW_W || model == GLAIVEPRO; }
+    inline static bool  isMouse(Model model)        { return model == M55 || model == M65 || model == SABRE || model == SCIMITAR || model == HARPOON || model == GLAIVE || model == KATAR || model == KATARPROXT || model == M65E || model == M95 || model == IRONCLAW || model == NIGHTSWORD || model == DARKCORE || model == DARKCORERGBPRO || model == IRONCLAW_W || model == GLAIVEPRO; }
     inline bool         isMouse() const             { return isMouse(keyModel); }
-    inline static bool  isMousepad(Model model)     { return model == POLARIS; }
+    inline static bool  isMousepad(Model model)     { return model == POLARIS || model == MM700; }
     inline bool         isMousepad() const          { return isMousepad(keyModel); }
     inline static bool  isHeadsetStand(Model model) { return model == ST100; }
     inline bool         isHeadsetStand() const      { return isHeadsetStand(keyModel); }
 
-    inline static bool hasLights(Model model)       { return !(model == M95 || model == K66); }
+    inline static bool hasLights(Model model)       { return !(model == M95 || model == K66 || model == BRAGI_DONGLE); }
     inline bool        hasLights() const            { return hasLights(keyModel); }
 
     // Creates a blank key map
@@ -159,24 +168,34 @@ public:
     inline QString  name() const    { return (strModel() + " " + strLayout()).toUpper(); }
 
     // Number of keys in the keymap
-    inline uint count() const   { return _keys.count(); }
+    inline int count() const   { return _keys.count(); }
     // Keyboard total width
-    inline uint width() const   { return keyWidth; }
+    inline short width() const   { return keyWidth; }
     // Keyboard total height
-    inline uint height() const  { return keyHeight; }
+    inline short height() const  { return keyHeight; }
 
     // Keys by name
-    inline Key  key(const QString& name) const          { return _keys.value(name, {nullptr,nullptr,nullptr,0,0,0,0,0,0}); }
+    inline Key  key(const QString& name) const          { return _keys.value(name, emptyKey); }
     inline Key& operator[](const QString& name)         { return _keys[name]; }
     inline bool contains(const QString& name) const     { return _keys.contains(name); }
-    // List all key names/values
-    inline const QHash<QString, Key>&   map() const                         { return _keys; }
-    inline operator                     const QHash<QString, Key>& () const { return _keys; }
+    inline QHash<QString, Key>::const_iterator begin() const { return _keys.cbegin(); }
+    inline QHash<QString, Key>::const_iterator end() const { return _keys.cend(); }
     QStringList     keys() const                        { return _keys.keys(); }
     QList<Key>      positions() const                   { return _keys.values(); }
     // Key name to/from storage name. Returns the given name if not found.
-    inline QString  toStorage(const QString& name)      { const char* storage = key(name).storageName(); if(!storage) return name; return storage; }
-    inline QString  fromStorage(const QString& storage) { QHashIterator<QString, Key> i(*this); while(i.hasNext()) { i.next(); const char* s = i.value().storageName(); if(s == storage) return i.value().name; } return storage; }
+    inline QString toStorage(const QString& name) {
+        const char* storage = key(name).storageName();
+        if(!storage)
+            return name;
+        return storage;
+    }
+    inline QString fromStorage(const QString& storage) {
+        for(const Key& key : *this){
+            if(key.storageName() == storage)
+                return key.name;
+        }
+        return storage;
+    }
 
     // Keys by position (top to bottom, left to right)
     QStringList byPosition() const;
@@ -187,15 +206,24 @@ public:
     static const QStringList layoutList;
 
 private:
+    static const Key emptyKey;
     static int modelWidth(Model model);
     static int modelHeight(Model model);
 
     QHash<QString, Key> _keys;
-    short keyWidth, keyHeight;
     Model keyModel :8;
     Layout keyLayout :8;
 
     static QPair<int, QString> addToList(int i, const QStringList& list);
+protected:
+    short keyWidth, keyHeight;
+
+};
+
+struct KeyMapDebug : KeyMap {
+    using KeyMap::KeyMap;
+    using KeyMap::keyWidth;
+    using KeyMap::keyHeight;
 };
 
 #endif // KEYMAP_H

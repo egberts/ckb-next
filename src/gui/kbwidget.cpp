@@ -16,6 +16,7 @@
 #include "mainwindow.h"
 #include <QItemSelectionModel>
 #include "modelisttablemodel.h"
+#include "ckbmainbackgroundcolour.h"
 
 KbWidget::KbWidget(QWidget *parent, Kb *_device, XWindowDetector* windowDetector) :
     QWidget(parent),
@@ -23,6 +24,7 @@ KbWidget::KbWidget(QWidget *parent, Kb *_device, XWindowDetector* windowDetector
     ui(new Ui::KbWidget), currentMode(nullptr),
     prevmode(nullptr)
 {
+    CkbMainBackgroundColour::init(parent);
     ui->setupUi(this);
     Q_ASSERT(ui->pollRateBox->count() == Kb::POLLRATE_COUNT);
     ui->modesList->setDevice(device);
@@ -30,7 +32,11 @@ KbWidget::KbWidget(QWidget *parent, Kb *_device, XWindowDetector* windowDetector
     connect(device, &Kb::profileAdded, this, &KbWidget::updateProfileList);
     connect(device, &Kb::modeChanged, this, &KbWidget::modeChanged);
     connect(device, &Kb::infoUpdated, this, &KbWidget::devUpdate);
+#if QT_VERSION >= QT_VERSION_CHECK(6, 7, 0)
+    connect(ui->batteryTrayBox, &QCheckBox::checkStateChanged, this, &KbWidget::batteryTrayBox_checkStateChanged);
+#else // QT_VERSION < 6.7.0
     connect(ui->batteryTrayBox, &QCheckBox::stateChanged, this, &KbWidget::batteryTrayBox_stateChanged);
+#endif
     connect(MainWindow::mainWindow, &MainWindow::switchToProfileCLI, this, &KbWidget::switchToProfile);
     connect(MainWindow::mainWindow, &MainWindow::switchToModeCLI, this, &KbWidget::switchToMode);
     connect(ui->modesList->selectionModel(), &QItemSelectionModel::currentRowChanged, this, &KbWidget::currentSelectionChanged);
@@ -131,8 +137,7 @@ KbWidget::KbWidget(QWidget *parent, Kb *_device, XWindowDetector* windowDetector
         for(int i = 0; i < layoutnames.count(); i++)
             ui->layoutBox->addItem(layoutnames[i].second, layoutnames[i].first);
 
-        KeyMap::Layout settingsLayout;
-        KeyMap::Layout layout = settingsLayout = KeyMap::getLayout(settings.value("hwLayout").toString());
+        KeyMap::Layout layout = KeyMap::getLayout(settings.value("hwLayout").toString());
         if(layout == KeyMap::NO_LAYOUT){
             // If the layout hasn't been set yet, first check if one was set globally from a previous version
             // If not, try to pick an appropriate one that's supported by the hardware
@@ -244,12 +249,18 @@ void KbWidget::currentSelectionChanged(const QModelIndex& current, const QModelI
     device->setCurrentMode(mode);
 }
 
+#if QT_VERSION >= QT_VERSION_CHECK(6, 7, 0)
+#define CHECK_VALUE_UNCHECKED Qt::CheckState::Unchecked
+void KbWidget::batteryTrayBox_checkStateChanged(Qt::CheckState state){
+#else // QT_VERSION < 6.7.0
+#define CHECK_VALUE_UNCHECKED 0
 void KbWidget::batteryTrayBox_stateChanged(int state){
+#endif
     if(!device->features.contains("battery"))
         return;
-    device->showBatteryIndicator = state > 0;
+    device->showBatteryIndicator = state != CHECK_VALUE_UNCHECKED;
     device->needsSave();
-    if(state){
+    if(device->showBatteryIndicator){
         device->batteryIcon->show();
     } else {
         device->batteryIcon->hide();
@@ -277,7 +288,7 @@ void KbWidget::on_modesList_customContextMenuRequested(const QPoint& pos){
         del->setEnabled(false);
     QAction* moveup = new QAction(tr("Move Up"), this);
 #ifdef USE_XCB_EWMH
-    QAction* focusevts = new QAction("Manage Events", this);
+    QAction* focusevts = new QAction(tr("Manage Events"), this);
 #endif
     if(row == 0)
         moveup->setEnabled(false);
@@ -507,9 +518,12 @@ void KbWidget::switchToMode(const QString& mode){
     }
 }
 
-void KbWidget::on_pollRateBox_currentIndexChanged(const QString& arg1) {
+void KbWidget::on_pollRateBox_currentIndexChanged(int arg1) {
+    if(arg1 == -1)
+        return;
+    const QString str = ui->pollRateBox->itemText(arg1);
     ui->pollRateBox->setEnabled(false);
-    device->setPollRate(arg1.left(arg1.indexOf(QLatin1String(" ms"))));
+    device->setPollRate(str.left(str.indexOf(QLatin1String(" ms"))));
 }
 
 // Returns true if a match is found

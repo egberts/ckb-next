@@ -12,6 +12,9 @@
 #include "compat/qrand.h"
 #include <QMessageBox>
 #include "keywidgetdebugger.h"
+#include <QSurfaceFormat>
+#include <iostream>
+#include "ckbsystemquirks.h"
 
 QSharedMemory appShare("ckb-next");
 
@@ -35,6 +38,7 @@ enum CommandLineParseResults {
     CommandLineBackground,
     CommandLineSwitchToProfile,
     CommandLineSwitchToMode,
+    CommandLineSleep,
 };
 
 bool startDelay = false;
@@ -75,6 +79,9 @@ CommandLineParseResults parseCommandLine(QCommandLineParser &parser, QString *er
 
     const QCommandLineOption switchToModeOption(QStringList() << "m" << "mode", QObject::tr("Switches to the mode either in the current profile, or in the one specified by --profile"), "mode-name");
     parser.addOption(switchToModeOption);
+
+    const QCommandLineOption sleepOption(QStringList() << "z" << "sleep", QObject::tr("Turns the lights off as if the system was idling."));
+    parser.addOption(sleepOption);
 
     QCommandLineOption delayOption(QStringList() << "d" << "delay", QObject::tr("Delays application start for 5 seconds"));
     QCommandLineOption silentOption(QStringList() << "s" << "silent", QObject::tr("Disables the daemon not running popup"));
@@ -145,6 +152,10 @@ CommandLineParseResults parseCommandLine(QCommandLineParser &parser, QString *er
         return CommandLineSwitchToMode;
     }
 
+    if(parser.isSet(sleepOption)) {
+        return CommandLineSleep;
+    }
+
     /* no explicit argument was passed */
     return CommandLineOK;
 }
@@ -169,7 +180,11 @@ static bool pidActive(const QStringList& lines){
 // Check if the application is running. Optionally write something to its shared memory.
 static bool isRunning(const char* command){
     // Try to create shared memory (if successful, application was not already running)
-    if(!appShare.create(SHMEM_SIZE) || !appShare.lock()){
+    // We try to create it twice, because if ckb-next crashes a certain way (ASAN), then we end up
+    // with a situation where create() fails with QSharedMemory::AlreadyExists
+    // but then attach() also fails with QSharedMemory::NotFound.
+    // By trying to create it twice, if it fails twice, that means it actually already exists.
+    if((!appShare.create(SHMEM_SIZE) && !appShare.create(SHMEM_SIZE)) || !appShare.lock()){
         // Lock existing shared memory
         if(!appShare.attach() || !appShare.lock())
             return true;
@@ -221,24 +236,62 @@ bool checkIfQtCreator(){
     return false;
 }
 
-int main(int argc, char *argv[]){
-QSettings::setDefaultFormat(CkbSettings::Format);
+const char* DISPLAY = nullptr;
+const char* argv0 = nullptr;
+
+int main(int argc, char* argv[]){
+    // Warning: The order of everything in main() is very fragile
+    // Please be very careful if shuffling things around
+
+    // First assign argv0 because we need it in CkbSystemQuirks
+    if(argc > 0)
+        argv0 = argv[0];
+
+    // Setup names and versions
+    // This needs to be done before the first QSettings is created
+    QCoreApplication::setOrganizationName("ckb-next");
+    QCoreApplication::setApplicationVersion(CKB_NEXT_VERSION_STR);
+    QCoreApplication::setApplicationName("ckb-next");
+
+    // Initialize a temporary QSettings very early to apply quirks before QApplication is created
+    QSettings::setDefaultFormat(CkbSettings::Format);
+    QSettings* tmpSettings = new QSettings();
+
+    // Apply OpenGL-related settings before QApplication
+    // Note: The settings are not exposed in the UI
+    QSurfaceFormat fmt;
+
+    int msaa = tmpSettings->value("Program/GL/MSAA", CkbSystemQuirks::getMaxMSAA()).toInt();
+    if(msaa >= 0 && msaa <= 16)
+        fmt.setSamples(msaa);
+
+    // HACK: Disable vsync so that the GUI thread isn't blocked when monitors enter power saving
+    const int swapInterval = tmpSettings->value("Program/GL/SwapInterval", 0).toInt();
+    if(swapInterval >= 0)
+        fmt.setSwapInterval(swapInterval);
+
+    QSurfaceFormat::setDefaultFormat(fmt);
 
 #ifdef Q_OS_LINUX
     // Get rid of "-session" before Qt parses the arguments
-    for(int i = 0; i < argc; i++){
-        if(!strcmp(argv[i], "-session")){
+    // Also store any value of -display
+    for(int i = 1; i < argc; i++){
+        QByteArray arg(argv[i]);
+        if (arg.startsWith("--"))
+            arg.remove(0, 1);
+        if(arg == "-session"){
             argv[i][1] = 'b';
             argv[i][2] = '\0';
-            if(i + 1 < argc)
-                argv[i + 1][0] = '\0';
-            break;
+            if(i + 1 < argc) {
+                argv[++i][0] = '\0';
+            }
+        } else if (arg == "-display" && i < argc - 1) {
+            DISPLAY = argv[++i];
         }
     }
 #endif
 
-    QSettings* tmpSettings = new QSettings(CkbSettings::Format, QSettings::UserScope, "ckb-next", "ckb-next");
-#if QT_VERSION >= QT_VERSION_CHECK(5, 6, 0)
+#if QT_VERSION >= QT_VERSION_CHECK(5, 6, 0) && QT_VERSION < QT_VERSION_CHECK(6, 0, 0)
     // Explicitly request high dpi scaling if desired
     // Needs to be called before QApplication is constructed
     if(tmpSettings->value("Program/HiDPI", false).toBool())
@@ -249,8 +302,17 @@ QSettings::setDefaultFormat(CkbSettings::Format);
     QApplication a(argc, argv);
 
     // Setup translations
-    QTranslator translator;
-    if(translator.load(QLocale(), "", "", ":/translations"))
+    QTranslator translator, qttranslator;
+#if QT_VERSION < QT_VERSION_CHECK(6, 0, 0)
+#define LOCATION location
+#else
+#define LOCATION path
+#endif
+    if(qttranslator.load(QLocale(), QStringLiteral("qt"), QStringLiteral("_"), QLibraryInfo::LOCATION(QLibraryInfo::TranslationsPath)))
+        a.installTranslator(&qttranslator);
+#undef LOCATION
+
+    if(translator.load(QLocale(), QStringLiteral(""), QStringLiteral(""), QStringLiteral(":/translations")))
         a.installTranslator(&translator);
 
     const quint16 currentSettingsVersion = tmpSettings->value("Program/SettingsVersion", 0).toInt();
@@ -269,15 +331,10 @@ QSettings::setDefaultFormat(CkbSettings::Format);
         tmpSettings->setValue("Program/SettingsVersion", CKB_NEXT_SETTINGS_VER);
     }
 
-    // Setup names and versions
-    QCoreApplication::setOrganizationName("ckb-next");
-    QCoreApplication::setApplicationVersion(CKB_NEXT_VERSION_STR);
-    QCoreApplication::setApplicationName("ckb-next");
-
     // Setup argument parser
     QCommandLineParser parser;
     QString errorMessage;
-    parser.setApplicationDescription("Open Source Corsair Input Device Driver for Linux and OSX.");
+    parser.setApplicationDescription(CKB_NEXT_DESCRIPTION);
     bool background = false;
 
     // Although the daemon runs as root, the GUI needn't and shouldn't be, as it has the potential to corrupt settings data.
@@ -289,7 +346,7 @@ QSettings::setDefaultFormat(CkbSettings::Format);
     // Seed the RNG for UsbIds
     Q_SRAND(QDateTime::currentMSecsSinceEpoch());
 
-#if QT_VERSION >= QT_VERSION_CHECK(5, 3, 0)
+#if QT_VERSION >= QT_VERSION_CHECK(5, 3, 0) && QT_VERSION < QT_VERSION_CHECK(6, 0, 0)
     // Enable HiDPI support
     qApp->setAttribute(Qt::AA_UseHighDpiPixmaps);
 #endif
@@ -343,6 +400,11 @@ QSettings::setDefaultFormat(CkbSettings::Format);
 
         return 0;
     }
+    case CommandLineSleep:
+        if (!isRunning("Sleep"))
+            printf("ckb-next is not running.\n");
+
+        return 0;
     case CommandLineBackground:
         // If launched with --background, launch in background
         background = true;
@@ -388,6 +450,9 @@ QSettings::setDefaultFormat(CkbSettings::Format);
     if(QtCreator)
         QThread::sleep(1);
 
+    std::cout << "ckb-next " << CKB_NEXT_VERSION_STR << std::endl;
+    qDebug() << "Using" << CkbSystemQuirks::getGlVendor() << CkbSystemQuirks::getGlRenderer();
+
     MainWindow w(silent);
     if(!background)
         w.show();
@@ -395,8 +460,8 @@ QSettings::setDefaultFormat(CkbSettings::Format);
 #ifndef QT_NO_DEBUG
     if(kwdebug){
         KeyWidgetDebugger* d = new KeyWidgetDebugger;
-        d->setAttribute(Qt::WA_DeleteOnClose);
         d->show();
+        QObject::connect(&w, &MainWindow::destroyed, [d](){delete d;});
     }
 #endif
 

@@ -54,6 +54,8 @@ KbPerf::KbPerf(KbMode* parent) :
         iEnable[i] = true;
     }
     iMuteDev = SINK;
+    batteryLevel = 0;
+    batteryCharging = BATT_STATUS_UNKNOWN;
 }
 
 KbPerf::KbPerf(KbMode* parent, const KbPerf& other) :
@@ -307,8 +309,8 @@ quint64 KbPerf::pushDpi(const QPoint& newDpi, bool sniper){
 }
 
 void KbPerf::popDpi(quint64 pushIdx){
-    if(!pushedDpis.contains(pushIdx)) {   
-      return;
+    if(!pushedDpis.contains(pushIdx)) {
+        return;
     }
     pushedDpis.remove(pushIdx);
     if (pushedDpis.isEmpty()) {
@@ -316,7 +318,7 @@ void KbPerf::popDpi(quint64 pushIdx){
     } else {
         // Set the DPI to the last-pushed value still on the stack
         _curDpi(map_last(pushedDpis));
-    } 
+    }
     _needsUpdate = _needsSave = true;
     emit dpiChanged(dpiBaseIdx);
 }
@@ -476,7 +478,7 @@ void KbPerf::lightIndicator(const char* name, QRgb rgba){
     light()->setIndicator(name, qRgba(qRed(rgba), qGreen(rgba), qBlue(rgba), a));
 }
 
-void KbPerf::applyIndicators(int modeIndex, const bool indicatorState[]){
+void KbPerf::applyIndicators(int modeIndex, const bool indicatorState[HW_I_COUNT]){
     light()->resetIndicators();
     if(_iOpacity <= 0.f)
         return;
@@ -486,11 +488,32 @@ void KbPerf::applyIndicators(int modeIndex, const bool indicatorState[]){
         if(index == -1 || index > OTHER)
             index = OTHER;
         lightIndicator("dpi", dpiClr[index].rgba());
+        if (this->modeParent()->bind()->map().model() == KeyMap::DARKCORERGBPRO) {
+            lightIndicator("dpiw1", dpiClr[index].rgba());
+            if (index >= 2 || !index) lightIndicator("dpiw2", dpiClr[index].rgba());
+            if (index >= 3 || !index) lightIndicator("dpiw3", dpiClr[index].rgba());
+            if (!index) lightIndicator("dpiw0", dpiClr[index].rgba());
+            else {
+                if (batteryCharging == BATT_STATUS_CHARGING) lightIndicator("dpiw0", qRgb(0, 255, 0));
+                else {
+                    switch (batteryLevel) {
+                        case 2:
+                            lightIndicator("dpiw0", qRgb(255, 85, 0));
+                            break;
+                        case 1:
+                        case 0:
+                            lightIndicator("dpiw0", qRgb(255, 0, 0));
+                            break;
+                    }
+                }
+            }
+        }
     }
     // KB indicators
-    // Disable the M indicators for the K70MK2 and the STRAFE_MK2.
+    // Disable the M indicators for the K70MK2, the STRAFE_MK2, and the K70_TKL.
     // FIXME: Only enable them for devices that need them instead
-    if(iEnable[MODE] && !(this->modeParent()->bind()->map().model() == KeyMap::K70MK2 || this->modeParent()->bind()->map().model() == KeyMap::STRAFE_MK2)){
+    if(iEnable[MODE] && !(this->modeParent()->bind()->map().model() == KeyMap::K70MK2 ||
+                          this->modeParent()->bind()->map().model() == KeyMap::STRAFE_MK2)){
         for(uchar i = 0; i < Kb::HWMODE_MAX; i++){
             char name[4];
             snprintf(name, sizeof(name), "m%d", i + 1);
@@ -546,4 +569,10 @@ void KbPerf::applyIndicators(int modeIndex, const bool indicatorState[]){
 
 int KbPerf::getDpiIdx(){
     return dpiBaseIdx;
+}
+
+void KbPerf::setBattery(uint battery, BatteryStatus charging)
+{
+    batteryLevel = BatteryStatusTrayIcon::getBatteryString(battery);
+    batteryCharging = charging;
 }

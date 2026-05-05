@@ -1,19 +1,32 @@
 #include "ckbsettings.h"
 #include "ckbsettingswriter.h"
 #include <QThread>
-#include <QMutex>
 #include <QDebug>
 #include <QDateTime>
 #include <ckbnextconfig.h>
+#include <QCoreApplication>
+
+#if QT_VERSION >= QT_VERSION_CHECK(5, 14, 0)
+#include <QRecursiveMutex>
+#else
+#include <QMutex>
+#endif
 
 // Shared global QSettings object
 static QSettings* _globalSettings = nullptr;
 static QThread* globalThread = nullptr;
 QAtomicInt cacheWritesInProgress(0);
+
 // Global one-shot settings cache, to avoid reading/writing QSettings constantly
 static QMap<QString, QVariant> globalCache;
+
 // Mutexes for accessing settings
+#if QT_VERSION >= QT_VERSION_CHECK(5, 14, 0)
+QRecursiveMutex settingsMutex, settingsCacheMutex;
+#else
 QMutex settingsMutex(QMutex::Recursive), settingsCacheMutex(QMutex::Recursive);
+#endif
+
 #define lockMutex           QMutexLocker locker(backing == _globalSettings ? &settingsMutex : nullptr)
 #define lockMutexStatic     QMutexLocker locker(&settingsMutex)
 #define lockMutexStatic2    QMutexLocker locker2(&settingsMutex)
@@ -51,7 +64,7 @@ static QSettings* globalSettings(){
             const quint16 currentSettingsVersion = _globalSettings->value("Program/SettingsVersion", 0).toInt();
             if(currentSettingsVersion < CKB_NEXT_SETTINGS_VER){
                 QString backupName = QString("ckb-next_backup_%1").arg(QDateTime::currentMSecsSinceEpoch() / 1000);
-                QSettings backupSettings(CkbSettings::Format, QSettings::UserScope, "ckb-next", backupName);
+                QSettings backupSettings(CkbSettings::Format, QSettings::UserScope, QCoreApplication::organizationName(), backupName);
                 qInfo() << "Backing up settings to" << backupSettings.fileName();
                 QStringList oldKeys = _globalSettings->allKeys();
                 for(const QString& key : oldKeys){
@@ -82,7 +95,7 @@ bool CkbSettings::isBusy(){
 void CkbSettings::migrateSettings(bool macFormat){
     QSettings* oldSettings;
     if(macFormat)
-        oldSettings = new QSettings(QSettings::NativeFormat, QSettings::UserScope, "ckb-next", "ckb-next");
+        oldSettings = new QSettings(QSettings::NativeFormat, QSettings::UserScope, QCoreApplication::organizationName(), QCoreApplication::applicationName());
     else
         oldSettings = new QSettings("ckb", "ckb");
 

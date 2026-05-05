@@ -27,7 +27,7 @@
 
 # Lower it _only_ if tested to work correctly with that version!
 # Might be as low as 3.3, but again, use at your own risk
-cmake_minimum_required(VERSION 3.5.1 FATAL_ERROR)
+cmake_minimum_required(VERSION 3.13.4 FATAL_ERROR)
 
 project(ckb-next LANGUAGES C CXX)
 include(VERSION.cmake)
@@ -73,6 +73,7 @@ find_package(Sanitizers)
 
 include(CMakeDependentOption)
 
+set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/bin" CACHE STRING "Where to put binaries after compilation.")
 set(CMAKE_LIBRARY_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/lib" CACHE STRING "Where to put libraries after compilation.")
 set(UDEV_RULE_DIRECTORY "/lib/udev/rules.d" CACHE STRING "Where to install the udev rule.")
@@ -88,6 +89,7 @@ endif ()
 
 # Options: GUI
 option(WITH_GUI "Build with Qt GUI to manipulate animations." ON)
+option(PREFER_QT6 "Build with Qt 6 if available." ON)
 
 # Options: GUI animations
 option(WITH_ANIMATIONS "Build with animations." ON)
@@ -107,6 +109,7 @@ if (LINUX)
     cmake_dependent_option(WITH_MVIZ  "Build with music visualizer."           ON "WITH_ANIMATIONS;WITH_GUI" OFF)
     cmake_dependent_option(USE_XCB    "Build with features that require XCB."  ON  "WITH_GUI" OFF)
     cmake_dependent_option(USE_DBUS_MENU "Build with DBus support for the tray."  ON  "WITH_GUI" OFF)
+    cmake_dependent_option(USE_WAYLAND "Build with features that require Wayland."  ON  "WITH_GUI;PREFER_QT6" OFF)
     option(USE_PORTAUDIO              "Use portaudio for music visualizer."    OFF)
 else ()
     cmake_dependent_option(WITH_MVIZ   "Build with music visualizer."          OFF "WITH_ANIMATIONS;WITH_GUI" OFF)
@@ -120,6 +123,29 @@ option(DEBUG_USB_INPUT "Show the contents of USB packets being received from dev
 option(DEBUG_MUTEX     "Show debugging information regarding thread synchronisation." OFF)
 option(NO_FAIR_MUTEX_QUEUEING "Disable fair mutex queueing. Debugging only." OFF)
 option(DEBUG_INPUT_SYNC "Print a debug message every time an event bundle is delivered to the OS." OFF)
+option(FPS_COUNTER     "Enable FPS counters." OFF)
+option(WERROR     "Enable Werror (for CI)" OFF)
+
+if (NOT DISALLOW_SYSVINIT)
+    find_program(START_STOP_DAEMON start-stop-daemon
+        PATHS /sbin /usr/sbin /usr/local/sbin /bin /usr/bin /usr/local/bin
+        DOC "Path to Debian-style start-stop-daemon utility")
+    if (START_STOP_DAEMON)
+        # Need a pure-boolean variable as default for USE_START_STOP_DAEMON (option()/cmake_dependent_option() do not evaluate expressions)
+        set(START_STOP_DAEMON_FOUND TRUE)
+    endif ()
+
+    option(USE_START_STOP_DAEMON "Use the Debian-style start-stop-daemon command in management script (affects sysvinit only)" ${START_STOP_DAEMON_FOUND})
+    if (USE_START_STOP_DAEMON AND NOT START_STOP_DAEMON_FOUND)
+        message(WARNING "Debian-style start-stop-daemon not found in system paths, but sysvinit script overridden to use it anyway")
+    elseif (NOT USE_START_STOP_DAEMON AND START_STOP_DAEMON_FOUND)
+        message(STATUS "Have " ${START_STOP_DAEMON} ", but sysvinit script overridden to use LSB-compliant commands")
+    elseif (START_STOP_DAEMON_FOUND)
+        message(STATUS "Found Debian-style daemon control utility at " ${START_STOP_DAEMON})
+    else ()
+        message(STATUS "Debian-style start-stop-daemon not found in system paths, sysvinit control script would default to LSB-compliant tools only")
+    endif ()
+endif ()
 
 # Make sure NO_FAIR_MUTEX_QUEUEING is set if TSAN is enabled
 # Otherwise you end up with threading issues that are not detected
@@ -142,6 +168,8 @@ if (MACOS)
 elseif (LINUX)
     set(INSTALL_DIR_ANIMATIONS "${CMAKE_INSTALL_LIBEXECDIR}/${ANIMATIONS_DIR_NAME}"
         CACHE STRING "Where to install animations.")
+    set(INSTALL_DIR_UTILITIES "${CMAKE_INSTALL_LIBEXECDIR}"
+        CACHE STRING "Where to install miscellaneous utilities.")
 endif ()
 
 # Options: other
@@ -150,7 +178,13 @@ option(SAFE_INSTALL "Execute pre-install tasks to ensure correct installation.
 option(SAFE_UNINSTALL "Execute pre-uninstall tasks to ensure correct removal.
     Intended to be used with direct removals without package manager." OFF)
 
-option(WITH_SHIPPED_QUAZIP "Use shipped QuaZip5 instead of system package" OFF)
+set(CMAKE_FIND_PACKAGE_SORT_ORDER NATURAL)
+set(CMAKE_FIND_PACKAGE_SORT_DIRECTION DEC)
+
+set(QT_LIST Qt5)
+if (PREFER_QT6)
+    list(INSERT QT_LIST 0 Qt6)
+endif ()
 
 if (NOT WITH_GUI)
     message(WARNING "Building without GUI. Proceed only if you know what you are doing.")
